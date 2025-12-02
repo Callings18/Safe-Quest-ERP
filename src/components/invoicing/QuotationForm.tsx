@@ -1,15 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Loader2 } from "lucide-react";
-import { useCreateQuotation } from "@/hooks/useQuotations";
+import { useCreateQuotation, useUpdateQuotation } from "@/hooks/useQuotations";
 import { useCompanies } from "@/hooks/useCRM";
 
 interface QuotationFormProps {
   onSuccess: () => void;
+  editData?: {
+    id: string;
+    company_id?: string;
+    valid_until?: string;
+    tax_rate?: number;
+    notes?: string;
+    terms?: string;
+    quotation_items?: Array<{
+      description: string;
+      quantity: number;
+      unit_price: number;
+    }>;
+  } | null;
 }
 
 interface LineItem {
@@ -18,8 +31,9 @@ interface LineItem {
   unit_price: number;
 }
 
-export function QuotationForm({ onSuccess }: QuotationFormProps) {
+export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
   const createQuotation = useCreateQuotation();
+  const updateQuotation = useUpdateQuotation();
   const { data: companies } = useCompanies();
 
   const [form, setForm] = useState({
@@ -33,6 +47,25 @@ export function QuotationForm({ onSuccess }: QuotationFormProps) {
   const [items, setItems] = useState<LineItem[]>([
     { description: "", quantity: 1, unit_price: 0 },
   ]);
+
+  useEffect(() => {
+    if (editData) {
+      setForm({
+        company_id: editData.company_id || "",
+        valid_until: editData.valid_until || "",
+        tax_rate: String(editData.tax_rate || 16),
+        notes: editData.notes || "",
+        terms: editData.terms || "",
+      });
+      if (editData.quotation_items?.length) {
+        setItems(editData.quotation_items.map(item => ({
+          description: item.description,
+          quantity: Number(item.quantity),
+          unit_price: Number(item.unit_price),
+        })));
+      }
+    }
+  }, [editData]);
 
   const addItem = () => {
     setItems([...items, { description: "", quantity: 1, unit_price: 0 }]);
@@ -54,6 +87,9 @@ export function QuotationForm({ onSuccess }: QuotationFormProps) {
   const taxAmount = subtotal * (Number(form.tax_rate) / 100);
   const total = subtotal + taxAmount;
 
+  const isEditing = !!editData?.id;
+  const mutation = isEditing ? updateQuotation : createQuotation;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -62,15 +98,17 @@ export function QuotationForm({ onSuccess }: QuotationFormProps) {
       return;
     }
 
-    await createQuotation.mutateAsync({
+    const payload = {
+      ...(isEditing && { id: editData.id }),
       company_id: form.company_id || undefined,
       valid_until: form.valid_until || undefined,
       tax_rate: Number(form.tax_rate),
       notes: form.notes || undefined,
       terms: form.terms || undefined,
       items: validItems,
-    });
-    
+    };
+
+    await mutation.mutateAsync(payload as any);
     onSuccess();
   };
 
@@ -115,7 +153,6 @@ export function QuotationForm({ onSuccess }: QuotationFormProps) {
         </Select>
       </div>
 
-      {/* Line Items */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label>Line Items</Label>
@@ -169,7 +206,6 @@ export function QuotationForm({ onSuccess }: QuotationFormProps) {
           ))}
         </div>
 
-        {/* Totals */}
         <div className="flex justify-end">
           <div className="w-64 space-y-2 text-sm">
             <div className="flex justify-between">
@@ -207,9 +243,9 @@ export function QuotationForm({ onSuccess }: QuotationFormProps) {
         />
       </div>
 
-      <Button type="submit" className="w-full" disabled={createQuotation.isPending}>
-        {createQuotation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-        Create Quotation
+      <Button type="submit" className="w-full" disabled={mutation.isPending}>
+        {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+        {isEditing ? "Update Quotation" : "Create Quotation"}
       </Button>
     </form>
   );

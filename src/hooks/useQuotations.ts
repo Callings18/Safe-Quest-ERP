@@ -112,6 +112,77 @@ export function useCreateQuotation() {
   });
 }
 
+export function useUpdateQuotation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...quotation }: {
+      id: string;
+      company_id?: string;
+      valid_until?: string;
+      notes?: string;
+      terms?: string;
+      tax_rate?: number;
+      items: Array<{
+        description: string;
+        quantity: number;
+        unit_price: number;
+      }>;
+    }) => {
+      let subtotal = 0;
+      const taxRate = quotation.tax_rate || 16;
+      
+      quotation.items.forEach((item) => {
+        subtotal += item.quantity * item.unit_price;
+      });
+
+      const tax_amount = subtotal * (taxRate / 100);
+      const total = subtotal + tax_amount;
+
+      const { error: qtError } = await supabase
+        .from("quotations")
+        .update({
+          company_id: quotation.company_id,
+          valid_until: quotation.valid_until,
+          notes: quotation.notes,
+          terms: quotation.terms,
+          tax_rate: taxRate,
+          subtotal,
+          tax_amount,
+          total,
+        })
+        .eq("id", id);
+
+      if (qtError) throw qtError;
+
+      // Delete existing items and insert new ones
+      await supabase.from("quotation_items").delete().eq("quotation_id", id);
+
+      const items = quotation.items.map((item) => ({
+        quotation_id: id,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        tax_rate: 0,
+        total: item.quantity * item.unit_price,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("quotation_items")
+        .insert(items);
+
+      if (itemsError) throw itemsError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      toast.success("Quotation updated");
+    },
+    onError: (error) => {
+      toast.error("Failed to update quotation: " + error.message);
+    },
+  });
+}
+
 export function useUpdateQuotationStatus() {
   const queryClient = useQueryClient();
 
@@ -135,7 +206,6 @@ export function useConvertQuotationToInvoice() {
 
   return useMutation({
     mutationFn: async (quotationId: string) => {
-      // Get quotation with items
       const { data: quotation, error: qtError } = await supabase
         .from("quotations")
         .select("*, quotation_items(*)")
@@ -146,7 +216,6 @@ export function useConvertQuotationToInvoice() {
 
       const invoice_number = `INV-${Date.now().toString(36).toUpperCase()}`;
 
-      // Create invoice
       const { data: invoice, error: invError } = await supabase
         .from("invoices")
         .insert({
@@ -168,7 +237,6 @@ export function useConvertQuotationToInvoice() {
 
       if (invError) throw invError;
 
-      // Copy items
       const items = quotation.quotation_items.map((item: any) => ({
         invoice_id: invoice.id,
         description: item.description,
@@ -184,7 +252,6 @@ export function useConvertQuotationToInvoice() {
 
       if (itemsError) throw itemsError;
 
-      // Update quotation status
       await supabase
         .from("quotations")
         .update({ status: "converted" })
