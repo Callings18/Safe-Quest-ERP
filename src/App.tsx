@@ -8,6 +8,9 @@ import CRM from "./pages/CRM";
 import Projects from "./pages/Projects";
 import Payroll from "./pages/Payroll";
 import Loans from "./pages/Loans";
+import Inventory from "./pages/Inventory";
+import Invoicing from "./pages/Invoicing";
+import Compliance from "./pages/Compliance";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -25,10 +28,10 @@ const App = () => (
           <Route path="/projects" element={<Projects />} />
           <Route path="/payroll" element={<Payroll />} />
           <Route path="/loans" element={<Loans />} />
-          <Route path="/inventory" element={<ComingSoon title="Inventory & Stock" description="Multi-warehouse inventory management with serial numbers, batches, and automated reordering." />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/invoicing" element={<Invoicing />} />
+          <Route path="/compliance" element={<Compliance />} />
           <Route path="/procurement" element={<ComingSoon title="Procurement" description="Supplier management, RFQ workflows, and purchase order approvals." />} />
-          <Route path="/invoicing" element={<ComingSoon title="Invoicing" description="Generate quotes, invoices, and manage payments with ZMW support." />} />
-          <Route path="/compliance" element={<ComingSoon title="Compliance & Reminders" description="Track document expiries, licenses, and statutory filing deadlines." />} />
           <Route path="/assets" element={<ComingSoon title="Assets & Fleet" description="Asset register, depreciation tracking, and fleet management." />} />
           <Route path="/hr" element={<ComingSoon title="HR & Employees" description="Employee profiles, performance reviews, and training management." />} />
           <Route path="/reports" element={<ComingSoon title="Reports & Analytics" description="Executive dashboards, financial reports, and custom report builder." />} />
