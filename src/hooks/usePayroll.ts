@@ -126,15 +126,17 @@ export function useCreatePayrollRun() {
     mutationFn: async (payrollRun: {
       pay_period: string;
       pay_date: string;
-      employee_ids: string[];
     }) => {
-      // Get employees
+      // Get all active employees
       const { data: employees, error: empError } = await supabase
         .from("employees")
         .select("*")
-        .in("id", payrollRun.employee_ids);
+        .eq("is_active", true);
 
       if (empError) throw empError;
+      if (!employees || employees.length === 0) {
+        throw new Error("No active employees to process");
+      }
 
       // Get rates
       const { data: rates, error: ratesError } = await supabase
@@ -152,7 +154,7 @@ export function useCreatePayrollRun() {
       let totalNhima = 0;
       let totalNet = 0;
 
-      const payslips = employees?.map((emp) => {
+      const payslips = employees.map((emp) => {
         const basic = Number(emp.basic_salary) || 0;
         const grossPay = basic;
         const paye = calculatePAYE(grossPay, rates || []);
@@ -199,14 +201,14 @@ export function useCreatePayrollRun() {
       if (runError) throw runError;
 
       // Create payslips
-      const payslipsWithRunId = payslips?.map((p) => ({
+      const payslipsWithRunId = payslips.map((p) => ({
         ...p,
         payroll_run_id: run.id,
       }));
 
       const { error: slipsError } = await supabase
         .from("payslips")
-        .insert(payslipsWithRunId || []);
+        .insert(payslipsWithRunId);
 
       if (slipsError) throw slipsError;
 
