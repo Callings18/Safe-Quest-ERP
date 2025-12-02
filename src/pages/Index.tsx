@@ -1,160 +1,143 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { KPICard } from "@/components/dashboard/KPICard";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
-import { QuickStats } from "@/components/dashboard/QuickStats";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
-import { UpcomingTasks } from "@/components/dashboard/UpcomingTasks";
-import { ProjectsOverview } from "@/components/dashboard/ProjectsOverview";
-import {
-  Wallet,
-  FileText,
-  Users,
-  TrendingUp,
-  Landmark,
-  Package,
-  AlertTriangle,
-  CalendarDays,
-} from "lucide-react";
-
-const kpis = [
-  {
-    title: "Total Revenue (YTD)",
-    value: "K4.89M",
-    change: 12.5,
-    changeLabel: "vs last year",
-    icon: <Wallet className="h-5 w-5" />,
-    iconBgClass: "bg-primary/10 text-primary",
-  },
-  {
-    title: "Outstanding Invoices",
-    value: "K892K",
-    change: -8.2,
-    changeLabel: "vs last month",
-    icon: <FileText className="h-5 w-5" />,
-    iconBgClass: "bg-warning/10 text-warning",
-  },
-  {
-    title: "Active Clients",
-    value: "156",
-    change: 5.3,
-    changeLabel: "this quarter",
-    icon: <Users className="h-5 w-5" />,
-    iconBgClass: "bg-info/10 text-info",
-  },
-  {
-    title: "Loan Portfolio",
-    value: "K2.1M",
-    change: 18.7,
-    changeLabel: "growth",
-    icon: <Landmark className="h-5 w-5" />,
-    iconBgClass: "bg-success/10 text-success",
-  },
-];
+import { useInvoiceStats } from "@/hooks/useInvoices";
+import { useLoanStats } from "@/hooks/useLoans";
+import { useProjectStats } from "@/hooks/useProjects";
+import { useComplianceStats } from "@/hooks/useCompliance";
+import { useLeadStats } from "@/hooks/useCRM";
+import { useAuth } from "@/contexts/AuthContext";
+import { Wallet, FileText, Users, Landmark, AlertTriangle, Package, CalendarDays } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export default function Index() {
+  const { user } = useAuth();
+  const { data: invoiceStats } = useInvoiceStats();
+  const { data: loanStats } = useLoanStats();
+  const { data: projectStats } = useProjectStats();
+  const { data: complianceStats } = useComplianceStats();
+  const { data: leadStats } = useLeadStats();
+
+  const kpis = [
+    {
+      title: "Total Invoiced",
+      value: `K${((invoiceStats?.totalInvoiced || 0) / 1000).toFixed(0)}K`,
+      change: 0,
+      changeLabel: "this period",
+      icon: <Wallet className="h-5 w-5" />,
+      iconBgClass: "bg-primary/10 text-primary",
+    },
+    {
+      title: "Outstanding Invoices",
+      value: `K${((invoiceStats?.outstanding || 0) / 1000).toFixed(0)}K`,
+      change: 0,
+      changeLabel: "pending collection",
+      icon: <FileText className="h-5 w-5" />,
+      iconBgClass: "bg-warning/10 text-warning",
+    },
+    {
+      title: "Active Projects",
+      value: `${projectStats?.active || 0}`,
+      change: 0,
+      changeLabel: "in progress",
+      icon: <Users className="h-5 w-5" />,
+      iconBgClass: "bg-info/10 text-info",
+    },
+    {
+      title: "Loan Portfolio",
+      value: `K${((loanStats?.outstanding || 0) / 1000).toFixed(0)}K`,
+      change: 0,
+      changeLabel: "outstanding",
+      icon: <Landmark className="h-5 w-5" />,
+      iconBgClass: "bg-success/10 text-success",
+    },
+  ];
+
   return (
     <AppLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground">
-              Welcome back, John. Here's what's happening today.
-            </p>
+            <p className="text-muted-foreground">Welcome back{user?.email ? `, ${user.email}` : ""}. Here's what's happening.</p>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <CalendarDays className="h-4 w-4" />
-            <span>December 2, 2024</span>
+            <span>{new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
           </div>
         </div>
 
-        {/* KPI Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {kpis.map((kpi, index) => (
             <KPICard key={kpi.title} {...kpi} delay={index * 50} />
           ))}
         </div>
 
-        {/* Charts Row */}
         <div className="grid gap-6 lg:grid-cols-3">
           <RevenueChart />
-          <RecentActivity />
+          <Card className="animate-slide-up" style={{ animationDelay: "300ms" }}>
+            <CardHeader><CardTitle className="text-lg">Quick Actions</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <Link to="/crm"><Button variant="outline" className="w-full justify-start">Add New Lead</Button></Link>
+              <Link to="/invoicing"><Button variant="outline" className="w-full justify-start">Create Invoice</Button></Link>
+              <Link to="/loans"><Button variant="outline" className="w-full justify-start">New Loan Application</Button></Link>
+              <Link to="/projects"><Button variant="outline" className="w-full justify-start">Start Project</Button></Link>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Stats & Tasks Row */}
         <div className="grid gap-6 lg:grid-cols-3">
-          <QuickStats />
-          <UpcomingTasks />
-          <div className="space-y-6">
-            {/* Alert Card */}
-            <div className="p-4 rounded-xl border border-warning/30 bg-warning/5 animate-slide-up" style={{ animationDelay: "450ms" }}>
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-warning/10">
-                  <AlertTriangle className="h-5 w-5 text-warning" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-sm">Compliance Alerts</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    3 documents expiring within 30 days. Review and renew to avoid penalties.
-                  </p>
-                  <button className="text-sm text-primary font-medium mt-2 hover:underline">
-                    View details →
-                  </button>
-                </div>
+          <Card className="animate-slide-up" style={{ animationDelay: "350ms" }}>
+            <CardHeader><CardTitle className="text-lg">Sales Pipeline</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">New Leads</span><span className="font-semibold">{leadStats?.new || 0}</span></div>
+              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Qualified</span><span className="font-semibold">{leadStats?.qualified || 0}</span></div>
+              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Proposals</span><span className="font-semibold">{leadStats?.proposal || 0}</span></div>
+              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Won</span><span className="font-semibold text-success">{leadStats?.won || 0}</span></div>
+              <div className="border-t border-border pt-3 flex justify-between items-center">
+                <span className="text-sm font-medium">Pipeline Value</span>
+                <span className="font-bold text-primary">K{((leadStats?.totalValue || 0) / 1000).toFixed(0)}K</span>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Stock Alert */}
-            <div className="p-4 rounded-xl border border-destructive/30 bg-destructive/5 animate-slide-up" style={{ animationDelay: "500ms" }}>
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-destructive/10">
-                  <Package className="h-5 w-5 text-destructive" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-sm">Low Stock Alert</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    5 items below reorder level. Create purchase orders to restock.
-                  </p>
-                  <button className="text-sm text-primary font-medium mt-2 hover:underline">
-                    View inventory →
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+          <Card className="animate-slide-up" style={{ animationDelay: "400ms" }}>
+            <CardHeader><CardTitle className="text-lg">Loan Portfolio</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Active Loans</span><span className="font-semibold">{loanStats?.activeLoans || 0}</span></div>
+              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Disbursed</span><span className="font-semibold">K{((loanStats?.totalDisbursed || 0) / 1000).toFixed(0)}K</span></div>
+              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Collected</span><span className="font-semibold text-success">K{((loanStats?.collected || 0) / 1000).toFixed(0)}K</span></div>
+              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">In Arrears</span><span className="font-semibold text-destructive">K{((loanStats?.arrears || 0) / 1000).toFixed(0)}K</span></div>
+            </CardContent>
+          </Card>
 
-        {/* Projects */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          <ProjectsOverview />
           <div className="space-y-6">
-            {/* Payroll Summary */}
-            <div className="kpi-card animate-slide-up" style={{ animationDelay: "550ms" }}>
-              <h4 className="font-semibold text-sm mb-4">Payroll Summary (Nov)</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Gross Payroll</span>
-                  <span className="font-semibold">K485,200</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">PAYE</span>
-                  <span className="font-medium text-destructive">-K72,450</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">NAPSA</span>
-                  <span className="font-medium text-destructive">-K24,260</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">NHIMA</span>
-                  <span className="font-medium text-destructive">-K4,852</span>
-                </div>
-                <div className="border-t border-border pt-3 flex justify-between items-center">
-                  <span className="text-sm font-medium">Net Payroll</span>
-                  <span className="font-bold text-success">K383,638</span>
+            {(complianceStats?.expiringSoon || 0) > 0 && (
+              <div className="p-4 rounded-xl border border-warning/30 bg-warning/5 animate-slide-up" style={{ animationDelay: "450ms" }}>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-warning/10"><AlertTriangle className="h-5 w-5 text-warning" /></div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-sm">Compliance Alerts</h4>
+                    <p className="text-sm text-muted-foreground mt-1">{complianceStats?.expiringSoon || 0} documents expiring within 30 days.</p>
+                    <Link to="/compliance" className="text-sm text-primary font-medium mt-2 hover:underline inline-block">View details →</Link>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+            {(complianceStats?.expired || 0) > 0 && (
+              <div className="p-4 rounded-xl border border-destructive/30 bg-destructive/5 animate-slide-up" style={{ animationDelay: "500ms" }}>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-destructive/10"><Package className="h-5 w-5 text-destructive" /></div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-sm">Expired Documents</h4>
+                    <p className="text-sm text-muted-foreground mt-1">{complianceStats?.expired || 0} expired documents require immediate attention.</p>
+                    <Link to="/compliance" className="text-sm text-primary font-medium mt-2 hover:underline inline-block">View expired →</Link>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
