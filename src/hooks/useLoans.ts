@@ -79,6 +79,16 @@ export function useCreateLoan() {
       borrower_phone?: string;
       borrower_email?: string;
       borrower_national_id?: string;
+      borrower_address?: string;
+      employer_name?: string;
+      employer_phone?: string;
+      monthly_income?: number;
+      guarantor_name?: string;
+      guarantor_phone?: string;
+      guarantor_relation?: string;
+      collateral_type?: string;
+      collateral_description?: string;
+      collateral_value?: number;
       principal: number;
       term_months: number;
     }) => {
@@ -102,7 +112,23 @@ export function useCreateLoan() {
       const loan_number = `LN-${Date.now().toString(36).toUpperCase()}`;
 
       const { data, error } = await supabase.from("loans").insert({
-        ...loan,
+        loan_product_id: loan.loan_product_id,
+        borrower_name: loan.borrower_name,
+        borrower_phone: loan.borrower_phone,
+        borrower_email: loan.borrower_email,
+        borrower_national_id: loan.borrower_national_id,
+        borrower_address: loan.borrower_address,
+        employer_name: loan.employer_name,
+        employer_phone: loan.employer_phone,
+        monthly_income: loan.monthly_income,
+        guarantor_name: loan.guarantor_name,
+        guarantor_phone: loan.guarantor_phone,
+        guarantor_relation: loan.guarantor_relation,
+        collateral_type: loan.collateral_type,
+        collateral_description: loan.collateral_description,
+        collateral_value: loan.collateral_value,
+        principal: loan.principal,
+        term_months: loan.term_months,
         loan_number,
         interest_rate,
         total_interest,
