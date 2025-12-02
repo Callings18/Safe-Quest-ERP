@@ -258,6 +258,140 @@ export type Database = {
           },
         ]
       }
+      delivery_note_items: {
+        Row: {
+          created_at: string
+          delivery_note_id: string
+          description: string
+          id: string
+          product_id: string | null
+          quantity: number | null
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivery_note_id: string
+          description: string
+          id?: string
+          product_id?: string | null
+          quantity?: number | null
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivery_note_id?: string
+          description?: string
+          id?: string
+          product_id?: string | null
+          quantity?: number | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_note_items_delivery_note_id_fkey"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_note_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_notes: {
+        Row: {
+          branch_id: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          delivery_address: string | null
+          delivery_date: string | null
+          delivery_number: string
+          driver_name: string | null
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          received_by: string | null
+          received_date: string | null
+          status: Database["public"]["Enums"]["delivery_note_status"] | null
+          updated_at: string
+          vehicle_number: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_address?: string | null
+          delivery_date?: string | null
+          delivery_number: string
+          driver_name?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          received_by?: string | null
+          received_date?: string | null
+          status?: Database["public"]["Enums"]["delivery_note_status"] | null
+          updated_at?: string
+          vehicle_number?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_address?: string | null
+          delivery_date?: string | null
+          delivery_number?: string
+          driver_name?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          received_by?: string | null
+          received_date?: string | null
+          status?: Database["public"]["Enums"]["delivery_note_status"] | null
+          updated_at?: string
+          vehicle_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_notes_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           bank_account: string | null
@@ -437,6 +571,78 @@ export type Database = {
           },
         ]
       }
+      invoice_templates: {
+        Row: {
+          bank_account: string | null
+          bank_branch: string | null
+          bank_name: string | null
+          company_address: string | null
+          company_email: string | null
+          company_name: string | null
+          company_phone: string | null
+          company_tpin: string | null
+          created_at: string
+          created_by: string | null
+          font_family: string | null
+          footer_text: string | null
+          id: string
+          is_default: boolean | null
+          logo_url: string | null
+          name: string
+          primary_color: string | null
+          secondary_color: string | null
+          show_bank_details: boolean | null
+          show_logo: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          bank_account?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          company_address?: string | null
+          company_email?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          company_tpin?: string | null
+          created_at?: string
+          created_by?: string | null
+          font_family?: string | null
+          footer_text?: string | null
+          id?: string
+          is_default?: boolean | null
+          logo_url?: string | null
+          name: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          show_bank_details?: boolean | null
+          show_logo?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          bank_account?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          company_address?: string | null
+          company_email?: string | null
+          company_name?: string | null
+          company_phone?: string | null
+          company_tpin?: string | null
+          created_at?: string
+          created_by?: string | null
+          font_family?: string | null
+          footer_text?: string | null
+          id?: string
+          is_default?: boolean | null
+          logo_url?: string | null
+          name?: string
+          primary_color?: string | null
+          secondary_color?: string | null
+          show_bank_details?: boolean | null
+          show_logo?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           amount_paid: number | null
@@ -451,10 +657,12 @@ export type Database = {
           issue_date: string | null
           notes: string | null
           project_id: string | null
+          quotation_id: string | null
           status: Database["public"]["Enums"]["invoice_status"] | null
           subtotal: number | null
           tax_amount: number | null
           tax_rate: number | null
+          template_id: string | null
           terms: string | null
           total: number | null
           updated_at: string
@@ -472,10 +680,12 @@ export type Database = {
           issue_date?: string | null
           notes?: string | null
           project_id?: string | null
+          quotation_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
           subtotal?: number | null
           tax_amount?: number | null
           tax_rate?: number | null
+          template_id?: string | null
           terms?: string | null
           total?: number | null
           updated_at?: string
@@ -493,10 +703,12 @@ export type Database = {
           issue_date?: string | null
           notes?: string | null
           project_id?: string | null
+          quotation_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"] | null
           subtotal?: number | null
           tax_amount?: number | null
           tax_rate?: number | null
+          template_id?: string | null
           terms?: string | null
           total?: number | null
           updated_at?: string
@@ -528,6 +740,20 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -1387,6 +1613,149 @@ export type Database = {
           },
         ]
       }
+      quotation_items: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          product_id: string | null
+          quantity: number | null
+          quotation_id: string
+          tax_rate: number | null
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          product_id?: string | null
+          quantity?: number | null
+          quotation_id: string
+          tax_rate?: number | null
+          total: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          product_id?: string | null
+          quantity?: number | null
+          quotation_id?: string
+          tax_rate?: number | null
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotation_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_items_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotations: {
+        Row: {
+          branch_id: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          issue_date: string | null
+          notes: string | null
+          project_id: string | null
+          quotation_number: string
+          status: Database["public"]["Enums"]["quotation_status"] | null
+          subtotal: number | null
+          tax_amount: number | null
+          tax_rate: number | null
+          terms: string | null
+          total: number | null
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          issue_date?: string | null
+          notes?: string | null
+          project_id?: string | null
+          quotation_number: string
+          status?: Database["public"]["Enums"]["quotation_status"] | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          tax_rate?: number | null
+          terms?: string | null
+          total?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          issue_date?: string | null
+          notes?: string | null
+          project_id?: string | null
+          quotation_number?: string
+          status?: Database["public"]["Enums"]["quotation_status"] | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          tax_rate?: number | null
+          terms?: string | null
+          total?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_movements: {
         Row: {
           created_at: string
@@ -1571,6 +1940,7 @@ export type Database = {
         | "technician"
         | "loan_officer"
         | "hr"
+      delivery_note_status: "pending" | "dispatched" | "delivered" | "cancelled"
       invoice_status:
         | "draft"
         | "sent"
@@ -1606,6 +1976,13 @@ export type Database = {
         | "completed"
         | "cancelled"
       project_type: "construction" | "solar" | "maintenance" | "other"
+      quotation_status:
+        | "draft"
+        | "sent"
+        | "accepted"
+        | "rejected"
+        | "expired"
+        | "converted"
       stock_movement_type: "in" | "out" | "adjustment" | "transfer"
     }
     CompositeTypes: {
@@ -1743,6 +2120,7 @@ export const Constants = {
         "loan_officer",
         "hr",
       ],
+      delivery_note_status: ["pending", "dispatched", "delivered", "cancelled"],
       invoice_status: [
         "draft",
         "sent",
@@ -1783,6 +2161,14 @@ export const Constants = {
         "cancelled",
       ],
       project_type: ["construction", "solar", "maintenance", "other"],
+      quotation_status: [
+        "draft",
+        "sent",
+        "accepted",
+        "rejected",
+        "expired",
+        "converted",
+      ],
       stock_movement_type: ["in", "out", "adjustment", "transfer"],
     },
   },
