@@ -16,6 +16,23 @@ export function useInvoices() {
   });
 }
 
+export function useInvoice(id: string | undefined) {
+  return useQuery({
+    queryKey: ["invoice", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("*, companies(*), contacts(*), invoice_items(*)")
+        .eq("id", id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+}
+
 export function useInvoiceStats() {
   return useQuery({
     queryKey: ["invoice_stats"],
@@ -106,7 +123,6 @@ export function useCreateInvoice() {
 
       if (invError) throw invError;
 
-      // Insert line items
       const items = invoice.items.map((item) => ({
         invoice_id: inv.id,
         description: item.description,
@@ -131,6 +147,76 @@ export function useCreateInvoice() {
     },
     onError: (error) => {
       toast.error("Failed to create invoice: " + error.message);
+    },
+  });
+}
+
+export function useUpdateInvoice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...invoice }: {
+      id: string;
+      company_id?: string;
+      due_date?: string;
+      notes?: string;
+      items: Array<{
+        description: string;
+        quantity: number;
+        unit_price: number;
+        tax_rate?: number;
+      }>;
+    }) => {
+      let subtotal = 0;
+      let tax_amount = 0;
+      
+      invoice.items.forEach((item) => {
+        const lineTotal = item.quantity * item.unit_price;
+        subtotal += lineTotal;
+        tax_amount += lineTotal * ((item.tax_rate || 0) / 100);
+      });
+
+      const total = subtotal + tax_amount;
+
+      const { error: invError } = await supabase
+        .from("invoices")
+        .update({
+          company_id: invoice.company_id,
+          due_date: invoice.due_date,
+          notes: invoice.notes,
+          subtotal,
+          tax_amount,
+          total,
+        })
+        .eq("id", id);
+
+      if (invError) throw invError;
+
+      // Delete existing items and insert new ones
+      await supabase.from("invoice_items").delete().eq("invoice_id", id);
+
+      const items = invoice.items.map((item) => ({
+        invoice_id: id,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        tax_rate: item.tax_rate || 0,
+        total: item.quantity * item.unit_price * (1 + (item.tax_rate || 0) / 100),
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("invoice_items")
+        .insert(items);
+
+      if (itemsError) throw itemsError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoice_stats"] });
+      toast.success("Invoice updated");
+    },
+    onError: (error) => {
+      toast.error("Failed to update invoice: " + error.message);
     },
   });
 }

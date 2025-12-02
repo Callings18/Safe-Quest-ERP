@@ -1,9 +1,11 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Printer } from "lucide-react";
+import { Download, Printer, Loader2 } from "lucide-react";
 import { DocumentPreview } from "./DocumentPreview";
 import { InvoiceTemplate } from "@/hooks/useInvoiceTemplates";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 interface DocumentViewDialogProps {
   open: boolean;
@@ -25,6 +27,7 @@ export function DocumentViewDialog({
   payments,
 }: DocumentViewDialogProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const handlePrint = () => {
     const content = printRef.current;
@@ -56,6 +59,45 @@ export function DocumentViewDialog({
     }, 250);
   };
 
+  const handleDownloadPDF = async () => {
+    const content = printRef.current;
+    if (!content) return;
+
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(content, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 0;
+
+      pdf.addImage(imgData, "PNG", imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+
+      const docNumber = document?.invoice_number || document?.quotation_number || document?.delivery_number || "document";
+      pdf.save(`${docNumber}.pdf`);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const typeLabels = {
     invoice: "Invoice",
     quotation: "Quotation",
@@ -73,8 +115,9 @@ export function DocumentViewDialog({
               <Button variant="outline" size="sm" onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-1" /> Print
               </Button>
-              <Button variant="outline" size="sm" onClick={handlePrint}>
-                <Download className="h-4 w-4 mr-1" /> PDF
+              <Button variant="outline" size="sm" onClick={handleDownloadPDF} disabled={downloading}>
+                {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                PDF
               </Button>
             </div>
           </div>

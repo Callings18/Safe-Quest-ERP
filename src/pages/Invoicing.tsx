@@ -18,7 +18,7 @@ import { InvoiceForm } from "@/components/invoicing/InvoiceForm";
 import { PaymentForm } from "@/components/invoicing/PaymentForm";
 import { TemplateForm } from "@/components/invoicing/TemplateForm";
 import { DocumentViewDialog } from "@/components/invoicing/DocumentViewDialog";
-import { Loader2, Plus, Search, FileText, Send, CheckCircle2, AlertTriangle, XCircle, Wallet, TrendingUp, Eye, MoreHorizontal, ArrowRight, Truck, Receipt, Palette, Calendar } from "lucide-react";
+import { Loader2, Plus, Search, FileText, Send, CheckCircle2, AlertTriangle, XCircle, Wallet, TrendingUp, Eye, MoreHorizontal, ArrowRight, Truck, Receipt, Palette, Calendar, Pencil } from "lucide-react";
 
 const quotationStatusConfig: Record<string, { color: string; label: string }> = {
   draft: { color: "bg-muted text-muted-foreground border-border", label: "Draft" },
@@ -42,7 +42,7 @@ const deliveryStatusConfig: Record<string, { color: string; label: string }> = {
   pending: { color: "bg-muted text-muted-foreground border-border", label: "Pending" },
   dispatched: { color: "bg-info/10 text-info border-info/20", label: "Dispatched" },
   delivered: { color: "bg-success/10 text-success border-success/20", label: "Delivered" },
-  cancelled: { color: "bg-destructive/10 text-destructive border-destructive/20", label: "Cancelled" },
+  cancelled: { color: "bg-muted text-muted-foreground border-border", label: "Cancelled" },
 };
 
 export default function Invoicing() {
@@ -64,11 +64,25 @@ export default function Invoicing() {
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [editQuotation, setEditQuotation] = useState<any>(null);
+  const [editInvoice, setEditInvoice] = useState<any>(null);
   const [viewDialog, setViewDialog] = useState<{ open: boolean; type: any; doc: any; items: any[] }>({ open: false, type: "invoice", doc: null, items: [] });
 
   const handleRecordPayment = (invoice: any) => {
     setSelectedInvoice(invoice);
     setPaymentDialogOpen(true);
+  };
+
+  const handleEditQuotation = async (qt: any) => {
+    const { data: items } = await supabase.from("quotation_items").select("*").eq("quotation_id", qt.id);
+    setEditQuotation({ ...qt, quotation_items: items || [] });
+    setQuotationDialogOpen(true);
+  };
+
+  const handleEditInvoice = async (inv: any) => {
+    const { data: items } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id);
+    setEditInvoice({ ...inv, invoice_items: items || [] });
+    setInvoiceDialogOpen(true);
   };
 
   const handleViewDocument = async (type: "invoice" | "quotation" | "delivery_note" | "receipt", doc: any) => {
@@ -84,6 +98,16 @@ export default function Invoicing() {
       items = data || [];
     }
     setViewDialog({ open: true, type, doc, items });
+  };
+
+  const closeQuotationDialog = () => {
+    setQuotationDialogOpen(false);
+    setEditQuotation(null);
+  };
+
+  const closeInvoiceDialog = () => {
+    setInvoiceDialogOpen(false);
+    setEditInvoice(null);
   };
 
   return (
@@ -111,7 +135,13 @@ export default function Invoicing() {
             <Card><CardContent className="p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold">Quotations</h3>
-                <Dialog open={quotationDialogOpen} onOpenChange={setQuotationDialogOpen}><DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Quotation</Button></DialogTrigger><DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Create Quotation</DialogTitle></DialogHeader><QuotationForm onSuccess={() => setQuotationDialogOpen(false)} /></DialogContent></Dialog>
+                <Dialog open={quotationDialogOpen} onOpenChange={(open) => { if (!open) closeQuotationDialog(); else setQuotationDialogOpen(true); }}>
+                  <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Quotation</Button></DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader><DialogTitle>{editQuotation ? "Edit Quotation" : "Create Quotation"}</DialogTitle></DialogHeader>
+                    <QuotationForm onSuccess={closeQuotationDialog} editData={editQuotation} />
+                  </DialogContent>
+                </Dialog>
               </div>
               {quotationsLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div> : !quotations?.length ? <div className="text-center py-12 text-muted-foreground">No quotations yet.</div> : (
                 <div className="overflow-x-auto"><table className="w-full"><thead><tr className="border-b bg-muted/50"><th className="text-left p-3 font-medium text-muted-foreground">Quotation #</th><th className="text-left p-3 font-medium text-muted-foreground">Customer</th><th className="text-right p-3 font-medium text-muted-foreground">Amount</th><th className="text-left p-3 font-medium text-muted-foreground">Valid Until</th><th className="text-left p-3 font-medium text-muted-foreground">Status</th><th className="p-3"></th></tr></thead>
@@ -122,7 +152,13 @@ export default function Invoicing() {
                       <td className="p-3 text-right font-semibold">K{Number(qt.total).toLocaleString()}</td>
                       <td className="p-3"><div className="flex items-center gap-2 text-sm"><Calendar className="h-4 w-4 text-muted-foreground" />{qt.valid_until ? new Date(qt.valid_until).toLocaleDateString() : "-"}</div></td>
                       <td className="p-3"><Badge variant="outline" className={quotationStatusConfig[qt.status || "draft"]?.color}>{quotationStatusConfig[qt.status || "draft"]?.label}</Badge></td>
-                      <td className="p-3"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => handleViewDocument("quotation", qt)}><Eye className="h-4 w-4 mr-2" />View/Print</DropdownMenuItem>{qt.status === "draft" && <DropdownMenuItem onClick={() => updateQuotationStatus.mutate({ id: qt.id, status: "sent" })}><Send className="h-4 w-4 mr-2" />Mark Sent</DropdownMenuItem>}{qt.status === "sent" && <><DropdownMenuItem onClick={() => updateQuotationStatus.mutate({ id: qt.id, status: "accepted" })}><CheckCircle2 className="h-4 w-4 mr-2" />Mark Accepted</DropdownMenuItem><DropdownMenuItem onClick={() => updateQuotationStatus.mutate({ id: qt.id, status: "rejected" })}><XCircle className="h-4 w-4 mr-2" />Mark Rejected</DropdownMenuItem></>}{(qt.status === "accepted" || qt.status === "sent") && qt.status !== "converted" && <DropdownMenuItem onClick={() => convertToInvoice.mutate(qt.id)}><ArrowRight className="h-4 w-4 mr-2" />Convert to Invoice</DropdownMenuItem>}</DropdownMenuContent></DropdownMenu></td>
+                      <td className="p-3"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDocument("quotation", qt)}><Eye className="h-4 w-4 mr-2" />View/Print</DropdownMenuItem>
+                        {qt.status === "draft" && <DropdownMenuItem onClick={() => handleEditQuotation(qt)}><Pencil className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>}
+                        {qt.status === "draft" && <DropdownMenuItem onClick={() => updateQuotationStatus.mutate({ id: qt.id, status: "sent" })}><Send className="h-4 w-4 mr-2" />Mark Sent</DropdownMenuItem>}
+                        {qt.status === "sent" && <><DropdownMenuItem onClick={() => updateQuotationStatus.mutate({ id: qt.id, status: "accepted" })}><CheckCircle2 className="h-4 w-4 mr-2" />Mark Accepted</DropdownMenuItem><DropdownMenuItem onClick={() => updateQuotationStatus.mutate({ id: qt.id, status: "rejected" })}><XCircle className="h-4 w-4 mr-2" />Mark Rejected</DropdownMenuItem></>}
+                        {(qt.status === "accepted" || qt.status === "sent") && qt.status !== "converted" && <DropdownMenuItem onClick={() => convertToInvoice.mutate(qt.id)}><ArrowRight className="h-4 w-4 mr-2" />Convert to Invoice</DropdownMenuItem>}
+                      </DropdownMenuContent></DropdownMenu></td>
                     </tr>
                   ))}</tbody></table></div>
               )}
@@ -133,7 +169,13 @@ export default function Invoicing() {
             <Card><CardContent className="p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold">Invoices</h3>
-                <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}><DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Invoice</Button></DialogTrigger><DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Create Invoice</DialogTitle></DialogHeader><InvoiceForm onSuccess={() => setInvoiceDialogOpen(false)} /></DialogContent></Dialog>
+                <Dialog open={invoiceDialogOpen} onOpenChange={(open) => { if (!open) closeInvoiceDialog(); else setInvoiceDialogOpen(true); }}>
+                  <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Invoice</Button></DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader><DialogTitle>{editInvoice ? "Edit Invoice" : "Create Invoice"}</DialogTitle></DialogHeader>
+                    <InvoiceForm onSuccess={closeInvoiceDialog} editData={editInvoice} />
+                  </DialogContent>
+                </Dialog>
               </div>
               {invoicesLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div> : !invoices?.length ? <div className="text-center py-12 text-muted-foreground">No invoices yet.</div> : (
                 <div className="overflow-x-auto"><table className="w-full"><thead><tr className="border-b bg-muted/50"><th className="text-left p-3 font-medium text-muted-foreground">Invoice #</th><th className="text-left p-3 font-medium text-muted-foreground">Customer</th><th className="text-right p-3 font-medium text-muted-foreground">Amount</th><th className="text-left p-3 font-medium text-muted-foreground">Due Date</th><th className="text-left p-3 font-medium text-muted-foreground">Status</th><th className="p-3"></th></tr></thead>
@@ -144,7 +186,13 @@ export default function Invoicing() {
                       <td className="p-3 text-right"><p className="font-semibold">K{Number(inv.total).toLocaleString()}</p>{Number(inv.amount_paid) > 0 && <p className="text-xs text-success">Paid: K{Number(inv.amount_paid).toLocaleString()}</p>}</td>
                       <td className="p-3"><div className="flex items-center gap-2 text-sm"><Calendar className="h-4 w-4 text-muted-foreground" />{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "-"}</div></td>
                       <td className="p-3"><Badge variant="outline" className={invoiceStatusConfig[inv.status || "draft"]?.color}>{invoiceStatusConfig[inv.status || "draft"]?.label}</Badge></td>
-                      <td className="p-3"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => handleViewDocument("invoice", inv)}><Eye className="h-4 w-4 mr-2" />View/Print</DropdownMenuItem>{inv.status !== "paid" && inv.status !== "cancelled" && <DropdownMenuItem onClick={() => handleRecordPayment(inv)}><Wallet className="h-4 w-4 mr-2" />Record Payment</DropdownMenuItem>}{inv.status !== "cancelled" && <DropdownMenuItem onClick={() => createDeliveryNote.mutate(inv.id)}><Truck className="h-4 w-4 mr-2" />Create Delivery Note</DropdownMenuItem>}{(inv.status === "paid" || Number(inv.amount_paid) > 0) && <DropdownMenuItem onClick={() => handleViewDocument("receipt", inv)}><Receipt className="h-4 w-4 mr-2" />View Receipt</DropdownMenuItem>}</DropdownMenuContent></DropdownMenu></td>
+                      <td className="p-3"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDocument("invoice", inv)}><Eye className="h-4 w-4 mr-2" />View/Print</DropdownMenuItem>
+                        {inv.status === "draft" && <DropdownMenuItem onClick={() => handleEditInvoice(inv)}><Pencil className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>}
+                        {inv.status !== "paid" && inv.status !== "cancelled" && <DropdownMenuItem onClick={() => handleRecordPayment(inv)}><Wallet className="h-4 w-4 mr-2" />Record Payment</DropdownMenuItem>}
+                        {inv.status !== "cancelled" && <DropdownMenuItem onClick={() => createDeliveryNote.mutate(inv.id)}><Truck className="h-4 w-4 mr-2" />Create Delivery Note</DropdownMenuItem>}
+                        {(inv.status === "paid" || Number(inv.amount_paid) > 0) && <DropdownMenuItem onClick={() => handleViewDocument("receipt", inv)}><Receipt className="h-4 w-4 mr-2" />View Receipt</DropdownMenuItem>}
+                      </DropdownMenuContent></DropdownMenu></td>
                     </tr>
                   ))}</tbody></table></div>
               )}
