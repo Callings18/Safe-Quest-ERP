@@ -14,6 +14,7 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Calculator, Download, Send, Users, Wallet, FileText, AlertTriangle, CheckCircle2, Calendar, Building2, Plus, UserPlus, Pencil, MoreHorizontal, Eye } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { PayslipViewer } from "@/components/payroll/PayslipViewer";
 
 const departments = ["Administration", "Finance", "Operations", "Sales", "Engineering", "HR", "IT", "Projects", "Field Operations"];
 
@@ -26,6 +27,8 @@ export default function Payroll() {
 
   const [employeeDialog, setEmployeeDialog] = useState(false);
   const [payrollDialog, setPayrollDialog] = useState(false);
+  const [payslipDialog, setPayslipDialog] = useState(false);
+  const [selectedPayrollRun, setSelectedPayrollRun] = useState<any>(null);
   const [editEmployee, setEditEmployee] = useState<any>(null);
   const [empForm, setEmpForm] = useState({
     employee_number: "",
@@ -49,6 +52,11 @@ export default function Payroll() {
     pay_period: "",
     pay_date: "",
   });
+
+  const handleViewPayslips = (run: any) => {
+    setSelectedPayrollRun(run);
+    setPayslipDialog(true);
+  };
 
   const createEmployee = useMutation({
     mutationFn: async (data: typeof empForm) => {
@@ -337,7 +345,7 @@ export default function Payroll() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="gap-1"><FileText className="h-4 w-4" />Payslips</Button>
+                  <Button variant="outline" size="sm" className="gap-1" onClick={() => latestRun && handleViewPayslips(latestRun)}><FileText className="h-4 w-4" />Payslips</Button>
                   <Button variant="outline" size="sm" className="gap-1"><Send className="h-4 w-4" />Send All</Button>
                 </div>
               </div>
@@ -487,6 +495,7 @@ export default function Payroll() {
                           <th className="text-right p-4 font-medium text-muted-foreground">Deductions</th>
                           <th className="text-right p-4 font-medium text-muted-foreground">Net</th>
                           <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
+                          <th className="p-4"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -501,6 +510,11 @@ export default function Payroll() {
                             <td className="p-4 text-right font-semibold text-success">K{Number(run.total_net || 0).toLocaleString()}</td>
                             <td className="p-4">
                               <Badge variant="outline" className="bg-success/10 text-success">{run.status}</Badge>
+                            </td>
+                            <td className="p-4">
+                              <Button variant="outline" size="sm" onClick={() => handleViewPayslips(run)}>
+                                <Eye className="h-4 w-4 mr-1" />Payslips
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -571,6 +585,15 @@ export default function Payroll() {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Payslip Viewer Dialog */}
+        <PayslipViewer
+          open={payslipDialog}
+          onOpenChange={setPayslipDialog}
+          payrollRunId={selectedPayrollRun?.id || null}
+          payPeriod={selectedPayrollRun?.pay_period || ""}
+          payDate={selectedPayrollRun?.pay_date || ""}
+        />
       </div>
     </AppLayout>
   );
