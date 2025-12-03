@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard,
   Users,
@@ -18,7 +21,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Sun,
   Zap,
   Building2,
   LogOut,
@@ -55,6 +57,39 @@ const bottomNavItems = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("id", user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return user?.email?.slice(0, 2).toUpperCase() || "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
 
   const NavItem = ({ item }: { item: typeof mainNavItems[0] }) => {
     const isActive = location.pathname === item.path;
@@ -153,22 +188,37 @@ export function Sidebar() {
 
         {/* User Profile */}
         <div className={cn(
-          "flex items-center gap-3 px-3 py-2 mt-2 rounded-lg bg-sidebar-accent/30",
+          "flex items-center gap-3 px-3 py-2 mt-2 rounded-lg bg-sidebar-accent/30 cursor-pointer hover:bg-sidebar-accent/50 transition-colors",
           collapsed && "justify-center"
-        )}>
+        )}
+          onClick={() => navigate("/settings")}
+        >
           <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
-            JM
+            {getInitials(profile?.full_name)}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">John Mwamba</p>
-              <p className="text-xs text-sidebar-foreground/50 truncate">Administrator</p>
+              <p className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</p>
+              <p className="text-xs text-sidebar-foreground/50 truncate">{user?.email}</p>
             </div>
           )}
           {!collapsed && (
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent">
-              <LogOut className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSignOut();
+                  }}
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Sign Out</TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>
