@@ -15,6 +15,7 @@ import Loans from "./pages/Loans";
 import Inventory from "./pages/Inventory";
 import Invoicing from "./pages/Invoicing";
 import Compliance from "./pages/Compliance";
+import Settings from "./pages/Settings";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -37,12 +38,12 @@ const App = () => (
             <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
             <Route path="/invoicing" element={<ProtectedRoute><Invoicing /></ProtectedRoute>} />
             <Route path="/compliance" element={<ProtectedRoute><Compliance /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/procurement" element={<ProtectedRoute><ComingSoon title="Procurement" description="Supplier management, RFQ workflows, and purchase order approvals." /></ProtectedRoute>} />
             <Route path="/assets" element={<ProtectedRoute><ComingSoon title="Assets & Fleet" description="Asset register, depreciation tracking, and fleet management." /></ProtectedRoute>} />
             <Route path="/hr" element={<ProtectedRoute><ComingSoon title="HR & Employees" description="Employee profiles, performance reviews, and training management." /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><ComingSoon title="Reports & Analytics" description="Executive dashboards, financial reports, and custom report builder." /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><ComingSoon title="Notifications" description="Communication center for all system alerts and messages." /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><ComingSoon title="Settings" description="System configuration, user management, and integrations." /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
