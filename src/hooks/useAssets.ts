@@ -99,10 +99,10 @@ export function useCreateMaintenanceRecord() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (record: {
-      asset_id?: string; vehicle_id?: string; maintenance_type: string;
+      asset_id?: string; vehicle_id?: string; maintenance_type?: string;
       description: string; scheduled_date?: string; completed_date?: string;
       cost?: number; vendor?: string; mileage_at_service?: number;
-      next_service_date?: string; next_service_mileage?: number; status?: string; notes?: string;
+      next_service_date?: string; next_service_mileage?: number; notes?: string;
     }) => {
       const { data, error } = await supabase.from("maintenance_records").insert(record).select().single();
       if (error) throw error;
