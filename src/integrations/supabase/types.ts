@@ -47,6 +47,80 @@ export type Database = {
         }
         Relationships: []
       }
+      assets: {
+        Row: {
+          asset_number: string
+          assigned_to: string | null
+          branch_id: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          current_value: number | null
+          depreciation_rate: number | null
+          description: string | null
+          id: string
+          location: string | null
+          name: string
+          notes: string | null
+          purchase_date: string | null
+          purchase_price: number | null
+          serial_number: string | null
+          status: Database["public"]["Enums"]["asset_status"] | null
+          updated_at: string
+          warranty_expiry: string | null
+        }
+        Insert: {
+          asset_number: string
+          assigned_to?: string | null
+          branch_id?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          current_value?: number | null
+          depreciation_rate?: number | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          notes?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["asset_status"] | null
+          updated_at?: string
+          warranty_expiry?: string | null
+        }
+        Update: {
+          asset_number?: string
+          assigned_to?: string | null
+          branch_id?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          current_value?: number | null
+          depreciation_rate?: number | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          notes?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["asset_status"] | null
+          updated_at?: string
+          warranty_expiry?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           address: string | null
@@ -474,6 +548,65 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fuel_logs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          driver: string | null
+          fill_date: string
+          fuel_type: string | null
+          id: string
+          mileage_at_fill: number | null
+          notes: string | null
+          quantity: number
+          receipt_number: string | null
+          station: string | null
+          total_cost: number
+          unit_price: number
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          driver?: string | null
+          fill_date?: string
+          fuel_type?: string | null
+          id?: string
+          mileage_at_fill?: number | null
+          notes?: string | null
+          quantity: number
+          receipt_number?: string | null
+          station?: string | null
+          total_cost: number
+          unit_price: number
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          driver?: string | null
+          fill_date?: string
+          fuel_type?: string | null
+          id?: string
+          mileage_at_fill?: number | null
+          notes?: string | null
+          quantity?: number
+          receipt_number?: string | null
+          station?: string | null
+          total_cost?: number
+          unit_price?: number
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_logs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -1120,6 +1253,81 @@ export type Database = {
             columns: ["loan_product_id"]
             isOneToOne: false
             referencedRelation: "loan_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_records: {
+        Row: {
+          asset_id: string | null
+          completed_date: string | null
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          maintenance_type: string
+          mileage_at_service: number | null
+          next_service_date: string | null
+          next_service_mileage: number | null
+          notes: string | null
+          scheduled_date: string | null
+          status: Database["public"]["Enums"]["maintenance_status"] | null
+          updated_at: string
+          vehicle_id: string | null
+          vendor: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          maintenance_type?: string
+          mileage_at_service?: number | null
+          next_service_date?: string | null
+          next_service_mileage?: number | null
+          notes?: string | null
+          scheduled_date?: string | null
+          status?: Database["public"]["Enums"]["maintenance_status"] | null
+          updated_at?: string
+          vehicle_id?: string | null
+          vendor?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          completed_date?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          maintenance_type?: string
+          mileage_at_service?: number | null
+          next_service_date?: string | null
+          next_service_mileage?: number | null
+          notes?: string | null
+          scheduled_date?: string | null
+          status?: Database["public"]["Enums"]["maintenance_status"] | null
+          updated_at?: string
+          vehicle_id?: string | null
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_records_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_records_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -1879,6 +2087,89 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicles: {
+        Row: {
+          assigned_driver: string | null
+          branch_id: string | null
+          color: string | null
+          created_at: string
+          created_by: string | null
+          current_mileage: number | null
+          engine_number: string | null
+          fitness_expiry: string | null
+          fuel_type: string | null
+          id: string
+          insurance_expiry: string | null
+          make: string
+          model: string
+          notes: string | null
+          purchase_date: string | null
+          purchase_price: number | null
+          registration_number: string
+          status: Database["public"]["Enums"]["vehicle_status"] | null
+          tank_capacity: number | null
+          updated_at: string
+          vin: string | null
+          year: number | null
+        }
+        Insert: {
+          assigned_driver?: string | null
+          branch_id?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_mileage?: number | null
+          engine_number?: string | null
+          fitness_expiry?: string | null
+          fuel_type?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          make: string
+          model: string
+          notes?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          registration_number: string
+          status?: Database["public"]["Enums"]["vehicle_status"] | null
+          tank_capacity?: number | null
+          updated_at?: string
+          vin?: string | null
+          year?: number | null
+        }
+        Update: {
+          assigned_driver?: string | null
+          branch_id?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_mileage?: number | null
+          engine_number?: string | null
+          fitness_expiry?: string | null
+          fuel_type?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          make?: string
+          model?: string
+          notes?: string | null
+          purchase_date?: string | null
+          purchase_price?: number | null
+          registration_number?: string
+          status?: Database["public"]["Enums"]["vehicle_status"] | null
+          tank_capacity?: number | null
+          updated_at?: string
+          vin?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warehouses: {
         Row: {
           address: string | null
@@ -1940,6 +2231,7 @@ export type Database = {
         | "technician"
         | "loan_officer"
         | "hr"
+      asset_status: "active" | "inactive" | "maintenance" | "disposed" | "sold"
       delivery_note_status: "pending" | "dispatched" | "delivered" | "cancelled"
       invoice_status:
         | "draft"
@@ -1963,6 +2255,12 @@ export type Database = {
         | "completed"
         | "defaulted"
         | "rejected"
+      maintenance_status:
+        | "scheduled"
+        | "in_progress"
+        | "completed"
+        | "overdue"
+        | "cancelled"
       payment_method:
         | "cash"
         | "bank_transfer"
@@ -1984,6 +2282,12 @@ export type Database = {
         | "expired"
         | "converted"
       stock_movement_type: "in" | "out" | "adjustment" | "transfer"
+      vehicle_status:
+        | "active"
+        | "inactive"
+        | "maintenance"
+        | "accident"
+        | "disposed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2120,6 +2424,7 @@ export const Constants = {
         "loan_officer",
         "hr",
       ],
+      asset_status: ["active", "inactive", "maintenance", "disposed", "sold"],
       delivery_note_status: ["pending", "dispatched", "delivered", "cancelled"],
       invoice_status: [
         "draft",
@@ -2146,6 +2451,13 @@ export const Constants = {
         "defaulted",
         "rejected",
       ],
+      maintenance_status: [
+        "scheduled",
+        "in_progress",
+        "completed",
+        "overdue",
+        "cancelled",
+      ],
       payment_method: [
         "cash",
         "bank_transfer",
@@ -2170,6 +2482,13 @@ export const Constants = {
         "converted",
       ],
       stock_movement_type: ["in", "out", "adjustment", "transfer"],
+      vehicle_status: [
+        "active",
+        "inactive",
+        "maintenance",
+        "accident",
+        "disposed",
+      ],
     },
   },
 } as const
