@@ -17,7 +17,10 @@ import Invoicing from "./pages/Invoicing";
 import Compliance from "./pages/Compliance";
 import Settings from "./pages/Settings";
 import Assets from "./pages/Assets";
-import ComingSoon from "./pages/ComingSoon";
+import Procurement from "./pages/Procurement";
+import HR from "./pages/HR";
+import Reports from "./pages/Reports";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,11 +43,11 @@ const App = () => (
             <Route path="/invoicing" element={<ProtectedRoute><Invoicing /></ProtectedRoute>} />
             <Route path="/compliance" element={<ProtectedRoute><Compliance /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/procurement" element={<ProtectedRoute><ComingSoon title="Procurement" description="Supplier management, RFQ workflows, and purchase order approvals." /></ProtectedRoute>} />
+            <Route path="/procurement" element={<ProtectedRoute><Procurement /></ProtectedRoute>} />
             <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
-            <Route path="/hr" element={<ProtectedRoute><ComingSoon title="HR & Employees" description="Employee profiles, performance reviews, and training management." /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><ComingSoon title="Reports & Analytics" description="Executive dashboards, financial reports, and custom report builder." /></ProtectedRoute>} />
-            <Route path="/notifications" element={<ProtectedRoute><ComingSoon title="Notifications" description="Communication center for all system alerts and messages." /></ProtectedRoute>} />
+            <Route path="/hr" element={<ProtectedRoute><HR /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
