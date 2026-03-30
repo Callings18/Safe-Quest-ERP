@@ -22,7 +22,7 @@ export default function Reports() {
 
   const revenueData = [
     { name: "Invoiced", value: invoiceStats?.totalInvoiced || 0 },
-    { name: "Collected", value: invoiceStats?.collected || 0 },
+    { name: "Collected", value: invoiceStats?.paid || 0 },
     { name: "Outstanding", value: invoiceStats?.outstanding || 0 },
   ];
 
@@ -44,7 +44,7 @@ export default function Reports() {
     { title: "Active Projects", value: projectStats?.active || 0, icon: FolderKanban, color: "text-info" },
     { title: "Loan Portfolio", value: `K${((loanStats?.outstanding || 0) / 1000).toFixed(0)}K`, icon: Landmark, color: "text-warning" },
     { title: "Employees", value: employeeStats?.active || 0, icon: Users, color: "text-success" },
-    { title: "Asset Value", value: `K${((assetStats?.totalValue || 0) / 1000).toFixed(0)}K`, icon: Truck, color: "text-destructive" },
+    { title: "Asset Value", value: `K${((assetStats?.totalAssetValue || 0) / 1000).toFixed(0)}K`, icon: Truck, color: "text-destructive" },
     { title: "Procurement Spend", value: `K${((procurementStats?.totalSpend || 0) / 1000).toFixed(0)}K`, icon: ShoppingCart, color: "text-primary" },
   ];
 
