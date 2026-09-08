@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { useRecordPayment } from "@/hooks/usePayments";
+import { formatZMW } from "@/lib/currency";
 
 interface PaymentFormProps {
   invoiceId: string;
@@ -43,7 +44,7 @@ export function PaymentForm({ invoiceId, balanceDue, onSuccess }: PaymentFormPro
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="p-4 bg-muted rounded-lg">
         <p className="text-sm text-muted-foreground">Balance Due</p>
-        <p className="text-2xl font-bold">K{balanceDue.toLocaleString()}</p>
+        <p className="text-2xl font-bold">{formatZMW(balanceDue)}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

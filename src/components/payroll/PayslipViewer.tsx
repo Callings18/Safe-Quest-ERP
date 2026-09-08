@@ -8,6 +8,7 @@ import { usePayslips } from "@/hooks/usePayroll";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
+import { formatZMW } from "@/lib/currency";
 
 interface PayslipViewerProps {
   open: boolean;
@@ -198,23 +199,23 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span>Basic Salary</span>
-                        <span className="font-medium">K{Number(currentPayslip?.basic_salary || 0).toLocaleString()}</span>
+                        <span className="font-medium">{formatZMW(currentPayslip?.basic_salary || 0)}</span>
                       </div>
                       {Number(currentPayslip?.allowances || 0) > 0 && (
                         <div className="flex justify-between">
                           <span>Allowances</span>
-                          <span className="font-medium">K{Number(currentPayslip?.allowances || 0).toLocaleString()}</span>
+                          <span className="font-medium">{formatZMW(currentPayslip?.allowances || 0)}</span>
                         </div>
                       )}
                       {Number(currentPayslip?.overtime || 0) > 0 && (
                         <div className="flex justify-between">
                           <span>Overtime</span>
-                          <span className="font-medium">K{Number(currentPayslip?.overtime || 0).toLocaleString()}</span>
+                          <span className="font-medium">{formatZMW(currentPayslip?.overtime || 0)}</span>
                         </div>
                       )}
                       <div className="flex justify-between pt-2 border-t font-semibold">
                         <span>Gross Pay</span>
-                        <span>K{Number(currentPayslip?.gross_pay || 0).toLocaleString()}</span>
+                        <span>{formatZMW(currentPayslip?.gross_pay || 0)}</span>
                       </div>
                     </div>
                   </div>
@@ -225,30 +226,30 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
                     <div className="space-y-2">
                       <div className="flex justify-between text-destructive">
                         <span>PAYE (Income Tax)</span>
-                        <span>-K{Number(currentPayslip?.paye || 0).toLocaleString()}</span>
+                        <span>-{formatZMW(currentPayslip?.paye || 0)}</span>
                       </div>
                       <div className="flex justify-between text-destructive">
                         <span>NAPSA (Employee 5%)</span>
-                        <span>-K{Number(currentPayslip?.napsa_employee || 0).toLocaleString()}</span>
+                        <span>-{formatZMW(currentPayslip?.napsa_employee || 0)}</span>
                       </div>
                       <div className="flex justify-between text-destructive">
                         <span>NHIMA (1%)</span>
-                        <span>-K{Number(currentPayslip?.nhima || 0).toLocaleString()}</span>
+                        <span>-{formatZMW(currentPayslip?.nhima || 0)}</span>
                       </div>
                       {Number(currentPayslip?.other_deductions || 0) > 0 && (
                         <div className="flex justify-between text-destructive">
                           <span>Other Deductions</span>
-                          <span>-K{Number(currentPayslip?.other_deductions || 0).toLocaleString()}</span>
+                          <span>-{formatZMW(currentPayslip?.other_deductions || 0)}</span>
                         </div>
                       )}
                       <div className="flex justify-between pt-2 border-t font-semibold text-destructive">
                         <span>Total Deductions</span>
-                        <span>-K{(
+                        <span>{formatZMW(-(
                           Number(currentPayslip?.paye || 0) +
                           Number(currentPayslip?.napsa_employee || 0) +
                           Number(currentPayslip?.nhima || 0) +
                           Number(currentPayslip?.other_deductions || 0)
-                        ).toLocaleString()}</span>
+                        ))}</span>
                       </div>
                     </div>
                   </div>
@@ -258,7 +259,7 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
                 <div className="bg-success/10 border border-success/20 rounded-lg p-4 mb-6">
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-semibold">Net Pay</span>
-                    <span className="text-2xl font-bold text-success">K{Number(currentPayslip?.net_pay || 0).toLocaleString()}</span>
+                    <span className="text-2xl font-bold text-success">{formatZMW(currentPayslip?.net_pay || 0)}</span>
                   </div>
                 </div>
 
@@ -275,7 +276,7 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
                 <div className="text-sm text-muted-foreground border-t pt-4">
                   <p className="font-medium mb-2">Employer Contributions (Not deducted from salary):</p>
                   <div className="flex gap-6">
-                    <span>NAPSA (Employer 5%): K{Number(currentPayslip?.napsa_employer || 0).toLocaleString()}</span>
+                    <span>NAPSA (Employer 5%): {formatZMW(currentPayslip?.napsa_employer || 0)}</span>
                   </div>
                 </div>
 

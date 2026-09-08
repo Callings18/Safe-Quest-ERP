@@ -11,6 +11,7 @@ import { Wallet, FileText, Users, Landmark, AlertTriangle, Package, CalendarDays
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { formatZMW } from "@/lib/currency";
 
 export default function Index() {
   const { user } = useAuth();
@@ -23,7 +24,7 @@ export default function Index() {
   const kpis = [
     {
       title: "Total Invoiced",
-      value: `K${((invoiceStats?.totalInvoiced || 0) / 1000).toFixed(0)}K`,
+      value: formatZMW(invoiceStats?.totalInvoiced),
       change: 0,
       changeLabel: "this period",
       icon: <Wallet className="h-5 w-5" />,
@@ -31,7 +32,7 @@ export default function Index() {
     },
     {
       title: "Outstanding Invoices",
-      value: `K${((invoiceStats?.outstanding || 0) / 1000).toFixed(0)}K`,
+      value: formatZMW(invoiceStats?.outstanding),
       change: 0,
       changeLabel: "pending collection",
       icon: <FileText className="h-5 w-5" />,
@@ -47,7 +48,7 @@ export default function Index() {
     },
     {
       title: "Loan Portfolio",
-      value: `K${((loanStats?.outstanding || 0) / 1000).toFixed(0)}K`,
+      value: formatZMW(loanStats?.outstanding),
       change: 0,
       changeLabel: "outstanding",
       icon: <Landmark className="h-5 w-5" />,
@@ -98,7 +99,7 @@ export default function Index() {
               <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Won</span><span className="font-semibold text-success">{leadStats?.won || 0}</span></div>
               <div className="border-t border-border pt-3 flex justify-between items-center">
                 <span className="text-sm font-medium">Pipeline Value</span>
-                <span className="font-bold text-primary">K{((leadStats?.totalValue || 0) / 1000).toFixed(0)}K</span>
+                <span className="font-bold text-primary">{formatZMW(leadStats?.totalValue)}</span>
               </div>
             </CardContent>
           </Card>
@@ -107,9 +108,9 @@ export default function Index() {
             <CardHeader><CardTitle className="text-lg">Loan Portfolio</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Active Loans</span><span className="font-semibold">{loanStats?.activeLoans || 0}</span></div>
-              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Disbursed</span><span className="font-semibold">K{((loanStats?.totalDisbursed || 0) / 1000).toFixed(0)}K</span></div>
-              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Collected</span><span className="font-semibold text-success">K{((loanStats?.collected || 0) / 1000).toFixed(0)}K</span></div>
-              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">In Arrears</span><span className="font-semibold text-destructive">K{((loanStats?.arrears || 0) / 1000).toFixed(0)}K</span></div>
+              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Disbursed</span><span className="font-semibold">{formatZMW(loanStats?.totalDisbursed)}</span></div>
+              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">Collected</span><span className="font-semibold text-success">{formatZMW(loanStats?.collected)}</span></div>
+              <div className="flex justify-between items-center"><span className="text-sm text-muted-foreground">In Arrears</span><span className="font-semibold text-destructive">{formatZMW(loanStats?.arrears)}</span></div>
             </CardContent>
           </Card>
 

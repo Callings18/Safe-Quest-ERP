@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProducts, useWarehouses, useProductCategories, useInventoryStats, useCreateProduct } from "@/hooks/useInventory";
 import { Loader2, Plus, Search, Package, AlertTriangle, Warehouse, TrendingDown, TrendingUp, Boxes } from "lucide-react";
+import { formatZMW } from "@/lib/currency";
 
 export default function Inventory() {
   const { data: products, isLoading: productsLoading } = useProducts();
@@ -63,8 +64,8 @@ export default function Inventory() {
                   <div className="space-y-2"><Label>Description</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2"><Label>Unit</Label><Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} /></div>
-                    <div className="space-y-2"><Label>Cost Price (K)</Label><Input type="number" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} /></div>
-                    <div className="space-y-2"><Label>Sell Price (K)</Label><Input type="number" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} /></div>
+                    <div className="space-y-2"><Label>Cost price (ZMW)</Label><Input type="number" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} /></div>
+                    <div className="space-y-2"><Label>Sell price (ZMW)</Label><Input type="number" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} /></div>
                   </div>
                   <div className="space-y-2"><Label>Reorder Level</Label><Input type="number" value={form.reorder_level} onChange={(e) => setForm({ ...form, reorder_level: e.target.value })} /></div>
                   <Button type="submit" className="w-full" disabled={createProduct.isPending}>
@@ -77,7 +78,7 @@ export default function Inventory() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
-          <Card className="animate-slide-up">
+          <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div><p className="text-sm text-muted-foreground">Total Products</p><p className="text-2xl font-bold">{products?.length || 0}</p></div>
@@ -85,15 +86,15 @@ export default function Inventory() {
               </div>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: "50ms" }}>
+          <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
-                <div><p className="text-sm text-muted-foreground">Total Value</p><p className="text-2xl font-bold">K{((stats?.totalValue || 0) / 1000).toFixed(0)}K</p></div>
+                <div><p className="text-sm text-muted-foreground">Total Value</p><p className="text-2xl font-bold">{formatZMW(stats?.totalValue || 0)}</p></div>
                 <div className="p-3 rounded-xl bg-success/10"><TrendingUp className="h-5 w-5 text-success" /></div>
               </div>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: "100ms" }}>
+          <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div><p className="text-sm text-muted-foreground">Low Stock</p><p className="text-2xl font-bold text-warning">{stats?.lowStockCount || 0}</p></div>
@@ -101,7 +102,7 @@ export default function Inventory() {
               </div>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: "150ms" }}>
+          <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div><p className="text-sm text-muted-foreground">Warehouses</p><p className="text-2xl font-bold">{warehouses?.length || 0}</p></div>
@@ -118,7 +119,7 @@ export default function Inventory() {
             <Card className="col-span-3"><CardContent className="py-8 text-center text-muted-foreground">No warehouses configured.</CardContent></Card>
           ) : (
             warehouses?.map((warehouse, index) => (
-              <Card key={warehouse.id} className="hover:border-primary/30 transition-colors cursor-pointer animate-slide-up" style={{ animationDelay: `${200 + index * 50}ms` }}>
+              <Card key={warehouse.id} className="hover:border-primary/30 transition-colors cursor-pointer">
                 <CardContent className="pt-4">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2 rounded-lg bg-primary/10"><Warehouse className="h-5 w-5 text-primary" /></div>
@@ -168,8 +169,8 @@ export default function Inventory() {
                               <div><p className="font-medium">{product.name}</p><p className="text-xs text-muted-foreground">{product.sku}</p></div>
                             </td>
                             <td className="p-4"><Badge variant="outline">{product.product_categories?.name || "-"}</Badge></td>
-                            <td className="p-4 text-right">K{Number(product.cost_price || 0).toLocaleString()}</td>
-                            <td className="p-4 text-right">K{Number(product.selling_price || 0).toLocaleString()}</td>
+                            <td className="p-4 text-right">{formatZMW(product.cost_price || 0)}</td>
+                            <td className="p-4 text-right">{formatZMW(product.selling_price || 0)}</td>
                             <td className="p-4 text-right text-muted-foreground">{product.reorder_level}</td>
                           </tr>
                         ))}

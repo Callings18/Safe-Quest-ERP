@@ -19,6 +19,7 @@ import { PaymentForm } from "@/components/invoicing/PaymentForm";
 import { TemplateForm } from "@/components/invoicing/TemplateForm";
 import { DocumentViewDialog } from "@/components/invoicing/DocumentViewDialog";
 import { Loader2, Plus, Search, FileText, Send, CheckCircle2, AlertTriangle, XCircle, Wallet, TrendingUp, Eye, MoreHorizontal, ArrowRight, Truck, Receipt, Palette, Calendar, Pencil } from "lucide-react";
+import { formatZMW } from "@/lib/currency";
 
 const quotationStatusConfig: Record<string, { color: string; label: string }> = {
   draft: { color: "bg-muted text-muted-foreground border-border", label: "Draft" },
@@ -128,10 +129,10 @@ export default function Invoicing() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
-          <Card><CardContent className="pt-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Total Invoiced</p><p className="text-2xl font-bold">K{((stats?.totalInvoiced || 0) / 1000).toFixed(0)}K</p></div><div className="p-3 rounded-xl bg-primary/10"><FileText className="h-5 w-5 text-primary" /></div></div></CardContent></Card>
-          <Card><CardContent className="pt-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Collected</p><p className="text-2xl font-bold text-success">K{((stats?.paid || 0) / 1000).toFixed(0)}K</p></div><div className="p-3 rounded-xl bg-success/10"><Wallet className="h-5 w-5 text-success" /></div></div></CardContent></Card>
-          <Card><CardContent className="pt-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Outstanding</p><p className="text-2xl font-bold text-primary">K{((stats?.outstanding || 0) / 1000).toFixed(0)}K</p></div><div className="p-3 rounded-xl bg-primary/10"><TrendingUp className="h-5 w-5 text-primary" /></div></div></CardContent></Card>
-          <Card><CardContent className="pt-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Overdue</p><p className="text-2xl font-bold text-destructive">K{((stats?.overdue || 0) / 1000).toFixed(0)}K</p></div><div className="p-3 rounded-xl bg-destructive/10"><AlertTriangle className="h-5 w-5 text-destructive" /></div></div></CardContent></Card>
+          <Card><CardContent className="pt-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Total Invoiced</p><p className="text-2xl font-bold">{formatZMW(stats?.totalInvoiced || 0)}</p></div><div className="p-3 rounded-xl bg-primary/10"><FileText className="h-5 w-5 text-primary" /></div></div></CardContent></Card>
+          <Card><CardContent className="pt-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Collected</p><p className="text-2xl font-bold text-success">{formatZMW(stats?.paid || 0)}</p></div><div className="p-3 rounded-xl bg-success/10"><Wallet className="h-5 w-5 text-success" /></div></div></CardContent></Card>
+          <Card><CardContent className="pt-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Outstanding</p><p className="text-2xl font-bold text-primary">{formatZMW(stats?.outstanding || 0)}</p></div><div className="p-3 rounded-xl bg-primary/10"><TrendingUp className="h-5 w-5 text-primary" /></div></div></CardContent></Card>
+          <Card><CardContent className="pt-4"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Overdue</p><p className="text-2xl font-bold text-destructive">{formatZMW(stats?.overdue || 0)}</p></div><div className="p-3 rounded-xl bg-destructive/10"><AlertTriangle className="h-5 w-5 text-destructive" /></div></div></CardContent></Card>
         </div>
 
         <Tabs defaultValue="quotations" className="space-y-4">
@@ -158,7 +159,7 @@ export default function Invoicing() {
                     <tr key={qt.id} className="border-b hover:bg-muted/30">
                       <td className="p-3"><p className="font-medium text-primary cursor-pointer hover:underline" onClick={() => handleViewDocument("quotation", qt)}>{qt.quotation_number}</p></td>
                       <td className="p-3">{qt.companies?.name || "-"}</td>
-                      <td className="p-3 text-right font-semibold">K{Number(qt.total).toLocaleString()}</td>
+                      <td className="p-3 text-right font-semibold">{formatZMW(qt.total)}</td>
                       <td className="p-3"><div className="flex items-center gap-2 text-sm"><Calendar className="h-4 w-4 text-muted-foreground" />{qt.valid_until ? new Date(qt.valid_until).toLocaleDateString() : "-"}</div></td>
                       <td className="p-3"><Badge variant="outline" className={quotationStatusConfig[qt.status || "draft"]?.color}>{quotationStatusConfig[qt.status || "draft"]?.label}</Badge></td>
                       <td className="p-3"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
@@ -192,7 +193,7 @@ export default function Invoicing() {
                     <tr key={inv.id} className="border-b hover:bg-muted/30">
                       <td className="p-3"><p className="font-medium text-primary cursor-pointer hover:underline" onClick={() => handleViewDocument("invoice", inv)}>{inv.invoice_number}</p></td>
                       <td className="p-3">{inv.companies?.name || "-"}</td>
-                      <td className="p-3 text-right"><p className="font-semibold">K{Number(inv.total).toLocaleString()}</p>{Number(inv.amount_paid) > 0 && <p className="text-xs text-success">Paid: K{Number(inv.amount_paid).toLocaleString()}</p>}</td>
+                      <td className="p-3 text-right"><p className="font-semibold">{formatZMW(inv.total)}</p>{Number(inv.amount_paid) > 0 && <p className="text-xs text-success">Paid: {formatZMW(inv.amount_paid)}</p>}</td>
                       <td className="p-3"><div className="flex items-center gap-2 text-sm"><Calendar className="h-4 w-4 text-muted-foreground" />{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "-"}</div></td>
                       <td className="p-3"><Badge variant="outline" className={invoiceStatusConfig[inv.status || "draft"]?.color}>{invoiceStatusConfig[inv.status || "draft"]?.label}</Badge></td>
                       <td className="p-3"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
@@ -236,7 +237,7 @@ export default function Invoicing() {
                       <td className="p-3">{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : "-"}</td>
                       <td className="p-3 text-primary">{p.invoices?.invoice_number || "-"}</td>
                       <td className="p-3">{p.invoices?.companies?.name || "-"}</td>
-                      <td className="p-3 text-right font-semibold text-success">K{Number(p.amount).toLocaleString()}</td>
+                      <td className="p-3 text-right font-semibold text-success">{formatZMW(p.amount)}</td>
                       <td className="p-3"><Badge variant="outline">{p.payment_method?.replace("_", " ")}</Badge></td>
                     </tr>
                   ))}</tbody></table></div>

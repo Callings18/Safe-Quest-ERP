@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { InvoiceTemplate } from "@/hooks/useInvoiceTemplates";
+import { formatZMW } from "@/lib/currency";
 
 interface DocumentPreviewProps {
   type: "invoice" | "quotation" | "delivery_note" | "receipt";
@@ -132,8 +133,8 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
                 <td className="p-3 border-b text-right">{item.quantity}</td>
                 {type !== "delivery_note" && (
                   <>
-                    <td className="p-3 border-b text-right">K{Number(item.unit_price).toLocaleString()}</td>
-                    <td className="p-3 border-b text-right">K{Number(item.total).toLocaleString()}</td>
+                    <td className="p-3 border-b text-right">{formatZMW(item.unit_price)}</td>
+                    <td className="p-3 border-b text-right">{formatZMW(item.total)}</td>
                   </>
                 )}
               </tr>
@@ -147,25 +148,25 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
             <div className="w-64">
               <div className="flex justify-between py-2 border-b">
                 <span>Subtotal:</span>
-                <span>K{Number(document.subtotal || 0).toLocaleString()}</span>
+                <span>{formatZMW(document.subtotal || 0)}</span>
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span>VAT ({document.tax_rate || 16}%):</span>
-                <span>K{Number(document.tax_amount || 0).toLocaleString()}</span>
+                <span>{formatZMW(document.tax_amount || 0)}</span>
               </div>
               <div className="flex justify-between py-2 font-bold text-lg" style={{ color: t.primary_color }}>
                 <span>Total:</span>
-                <span>K{Number(document.total || 0).toLocaleString()}</span>
+                <span>{formatZMW(document.total || 0)}</span>
               </div>
               {type === "invoice" && Number(document.amount_paid) > 0 && (
                 <>
                   <div className="flex justify-between py-2 border-t text-green-600">
                     <span>Amount Paid:</span>
-                    <span>K{Number(document.amount_paid).toLocaleString()}</span>
+                    <span>{formatZMW(document.amount_paid)}</span>
                   </div>
                   <div className="flex justify-between py-2 font-bold">
                     <span>Balance Due:</span>
-                    <span>K{(Number(document.total) - Number(document.amount_paid)).toLocaleString()}</span>
+                    <span>{formatZMW((Number(document.total) - Number(document.amount_paid)))}</span>
                   </div>
                 </>
               )}
@@ -180,7 +181,7 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
             {payments.map((payment) => (
               <div key={payment.id} className="flex justify-between py-1">
                 <span>{new Date(payment.payment_date).toLocaleDateString()} - {payment.payment_method}</span>
-                <span>K{Number(payment.amount).toLocaleString()}</span>
+                <span>{formatZMW(payment.amount)}</span>
               </div>
             ))}
           </div>

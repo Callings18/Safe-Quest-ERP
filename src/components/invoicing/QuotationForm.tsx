@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Loader2 } from "lucide-react";
 import { useCreateQuotation, useUpdateQuotation } from "@/hooks/useQuotations";
 import { useCompanies } from "@/hooks/useCRM";
+import { formatZMW } from "@/lib/currency";
 
 interface QuotationFormProps {
   onSuccess: () => void;
@@ -191,7 +192,7 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
                 />
               </div>
               <div className="w-28 text-right pt-2 font-medium">
-                K{(item.quantity * item.unit_price).toLocaleString()}
+                {formatZMW((item.quantity * item.unit_price))}
               </div>
               <Button
                 type="button"
@@ -210,15 +211,15 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
           <div className="w-64 space-y-2 text-sm">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>K{subtotal.toLocaleString()}</span>
+              <span>{formatZMW(subtotal)}</span>
             </div>
             <div className="flex justify-between">
               <span>VAT ({form.tax_rate}%):</span>
-              <span>K{taxAmount.toLocaleString()}</span>
+              <span>{formatZMW(taxAmount)}</span>
             </div>
             <div className="flex justify-between font-bold text-lg border-t pt-2">
               <span>Total:</span>
-              <span>K{total.toLocaleString()}</span>
+              <span>{formatZMW(total)}</span>
             </div>
           </div>
         </div>

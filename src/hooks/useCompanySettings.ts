@@ -22,12 +22,13 @@ export function useUpdateCompanySettings() {
       if (existing?.id) {
         const { error } = await supabase
           .from("company_settings")
-          .update({ ...payload, updated_at: new Date().toISOString(), updated_by: user.user?.id })
+          .update({ ...payload, currency: "ZMW", updated_at: new Date().toISOString(), updated_by: user.user?.id })
           .eq("id", existing.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from("company_settings").insert({
           ...payload,
+          currency: "ZMW",
           updated_by: user.user?.id,
         });
         if (error) throw error;

@@ -22,6 +22,7 @@ import {
 } from "@/hooks/useAccounting";
 import { Loader2, Plus, Wallet, TrendingUp, Receipt, BookOpen } from "lucide-react";
 import type { AccountType } from "@/hooks/useAccounting";
+import { formatZMW } from "@/lib/currency";
 
 export default function Accounting() {
   const { data: stats } = useFinanceStats();
@@ -65,10 +66,10 @@ export default function Accounting() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { title: "Revenue", value: `K${((stats?.revenue || 0) / 1000).toFixed(0)}K`, icon: TrendingUp },
-            { title: "Collected", value: `K${((stats?.received || 0) / 1000).toFixed(0)}K`, icon: Wallet },
-            { title: "Expenses", value: `K${((stats?.totalExpenses || 0) / 1000).toFixed(0)}K`, icon: Receipt },
-            { title: "Gross profit", value: `K${((stats?.grossProfit || 0) / 1000).toFixed(0)}K`, icon: BookOpen },
+            { title: "Revenue", value: formatZMW(stats?.revenue || 0), icon: TrendingUp },
+            { title: "Collected", value: formatZMW(stats?.received || 0), icon: Wallet },
+            { title: "Expenses", value: formatZMW(stats?.totalExpenses || 0), icon: Receipt },
+            { title: "Gross profit", value: formatZMW(stats?.grossProfit || 0), icon: BookOpen },
           ].map((k) => (
             <Card key={k.title}>
               <CardContent className="p-4 flex items-center gap-3">
@@ -118,8 +119,8 @@ export default function Accounting() {
                       <div><Label>Category</Label><Input value={expForm.category} onChange={(e) => setExpForm({ ...expForm, category: e.target.value })} /></div>
                       <div className="col-span-2"><Label>Payee</Label><Input value={expForm.payee} onChange={(e) => setExpForm({ ...expForm, payee: e.target.value })} /></div>
                       <div className="col-span-2"><Label>Description</Label><Input value={expForm.description} onChange={(e) => setExpForm({ ...expForm, description: e.target.value })} /></div>
-                      <div><Label>Amount (K)</Label><Input type="number" value={expForm.amount} onChange={(e) => setExpForm({ ...expForm, amount: e.target.value })} required /></div>
-                      <div><Label>VAT (K)</Label><Input type="number" value={expForm.tax_amount} onChange={(e) => setExpForm({ ...expForm, tax_amount: e.target.value })} /></div>
+                      <div><Label>Amount (ZMW)</Label><Input type="number" value={expForm.amount} onChange={(e) => setExpForm({ ...expForm, amount: e.target.value })} required /></div>
+                      <div><Label>VAT (ZMW)</Label><Input type="number" value={expForm.tax_amount} onChange={(e) => setExpForm({ ...expForm, tax_amount: e.target.value })} /></div>
                     </div>
                     <Button type="submit" className="w-full" disabled={createExpense.isPending}>Save</Button>
                   </form>
@@ -149,7 +150,7 @@ export default function Accounting() {
                         <TableCell>{e.expense_date}</TableCell>
                         <TableCell>{e.payee || "—"}</TableCell>
                         <TableCell>{e.category}</TableCell>
-                        <TableCell className="text-right">K{Number(e.total).toLocaleString()}</TableCell>
+                        <TableCell className="text-right">{formatZMW(e.total)}</TableCell>
                         <TableCell><Badge variant="outline">{e.status}</Badge></TableCell>
                         <TableCell>
                           {e.status === "pending" && (
@@ -173,7 +174,7 @@ export default function Accounting() {
                   {byCategory.map((c) => (
                     <div key={c.category} className="flex justify-between text-sm">
                       <span>{c.category}</span>
-                      <span className="font-medium">K{c.amount.toLocaleString()}</span>
+                      <span className="font-medium">{formatZMW(c.amount)}</span>
                     </div>
                   ))}
                 </CardContent>
@@ -223,7 +224,7 @@ export default function Accounting() {
                         {(accounts || []).map((a) => <SelectItem key={a.id} value={a.id}>{a.account_code} {a.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <Label>Amount (K)</Label>
+                    <Label>Amount (ZMW)</Label>
                     <Input type="number" value={jeForm.amount} onChange={(e) => setJeForm({ ...jeForm, amount: e.target.value })} required />
                     <Button type="submit" className="w-full" disabled={createJournal.isPending}>Post</Button>
                   </form>
@@ -250,8 +251,8 @@ export default function Accounting() {
                         <TableCell>{j.entry_number}</TableCell>
                         <TableCell>{j.entry_date}</TableCell>
                         <TableCell>{j.description}</TableCell>
-                        <TableCell className="text-right">K{Number(j.total_debit).toLocaleString()}</TableCell>
-                        <TableCell className="text-right">K{Number(j.total_credit).toLocaleString()}</TableCell>
+                        <TableCell className="text-right">{formatZMW(j.total_debit)}</TableCell>
+                        <TableCell className="text-right">{formatZMW(j.total_credit)}</TableCell>
                       </TableRow>
                     ))}
                     {!journals?.length && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No journal entries</TableCell></TableRow>}

@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useSuppliers, useCreateSupplier, usePurchaseOrders, useCreatePurchaseOrder, useUpdatePOStatus, useProcurementStats } from "@/hooks/useProcurement";
 import { Loader2, Plus, ShoppingCart, Users, TrendingUp, Package, MoreHorizontal, Search } from "lucide-react";
 import { format } from "date-fns";
+import { formatZMW } from "@/lib/currency";
 
 const poStatusConfig: Record<string, { color: string; label: string }> = {
   draft: { color: "bg-muted text-muted-foreground", label: "Draft" },
@@ -71,7 +72,7 @@ export default function Procurement() {
             { title: "Active Suppliers", value: stats?.activeSuppliers || 0, icon: Users },
             { title: "Total Orders", value: stats?.totalOrders || 0, icon: ShoppingCart },
             { title: "Pending Orders", value: stats?.pendingOrders || 0, icon: Package },
-            { title: "Total Spend", value: `K${((stats?.totalSpend || 0) / 1000).toFixed(0)}K`, icon: TrendingUp },
+            { title: "Total Spend", value: formatZMW(stats?.totalSpend || 0), icon: TrendingUp },
           ].map((kpi) => (
             <Card key={kpi.title}>
               <CardContent className="p-4">
@@ -125,7 +126,7 @@ export default function Procurement() {
                           <TableCell>{(po.suppliers as any)?.name || "—"}</TableCell>
                           <TableCell>{po.order_date ? format(new Date(po.order_date), "dd MMM yyyy") : "—"}</TableCell>
                           <TableCell>{po.expected_date ? format(new Date(po.expected_date), "dd MMM yyyy") : "—"}</TableCell>
-                          <TableCell>K{Number(po.total || 0).toLocaleString()}</TableCell>
+                          <TableCell>{formatZMW(po.total || 0)}</TableCell>
                           <TableCell><Badge variant="outline" className={sc.color}>{sc.label}</Badge></TableCell>
                           <TableCell>
                             <DropdownMenu>
@@ -211,7 +212,7 @@ export default function Procurement() {
                   </Select>
                 </div>
                 <div><Label>Expected Delivery</Label><Input type="date" value={poForm.expected_date} onChange={e => setPOForm(f => ({ ...f, expected_date: e.target.value }))} /></div>
-                <div><Label>Total Amount (K)</Label><Input type="number" value={poForm.total} onChange={e => setPOForm(f => ({ ...f, total: e.target.value }))} /></div>
+                <div><Label>Total amount (ZMW)</Label><Input type="number" value={poForm.total} onChange={e => setPOForm(f => ({ ...f, total: e.target.value }))} /></div>
                 <div className="col-span-2"><Label>Notes</Label><Input value={poForm.notes} onChange={e => setPOForm(f => ({ ...f, notes: e.target.value }))} /></div>
               </div>
               <Button type="submit" className="w-full" disabled={createPO.isPending || !poForm.supplier_id}>{createPO.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Create Purchase Order</Button>

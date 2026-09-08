@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Loader2, Calculator, Download, Send, Users, Wallet, FileText, AlertTriangle, CheckCircle2, Calendar, Building2, Plus, UserPlus, Pencil, MoreHorizontal, Eye } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PayslipViewer } from "@/components/payroll/PayslipViewer";
+import { formatZMW } from "@/lib/currency";
 
 const departments = ["Administration", "Finance", "Operations", "Sales", "Engineering", "HR", "IT", "Projects", "Field Operations"];
 
@@ -255,7 +256,7 @@ export default function Payroll() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Basic Salary (K) *</Label>
+                        <Label>Basic salary (ZMW) *</Label>
                         <Input type="number" value={empForm.basic_salary} onChange={(e) => setEmpForm({ ...empForm, basic_salary: e.target.value })} required />
                       </div>
                     </div>
@@ -320,7 +321,7 @@ export default function Payroll() {
                   </div>
                   <div className="p-4 rounded-lg bg-muted/50 space-y-2 text-sm">
                     <div className="flex justify-between"><span>Employees:</span><span className="font-medium">{employees?.length || 0}</span></div>
-                    <div className="flex justify-between"><span>Total Gross:</span><span className="font-medium">K{totalPayroll.toLocaleString()}</span></div>
+                    <div className="flex justify-between"><span>Total Gross:</span><span className="font-medium">{formatZMW(totalPayroll)}</span></div>
                   </div>
                   <Button type="submit" className="w-full" disabled={createPayrollRun.isPending}>
                     {createPayrollRun.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -333,7 +334,7 @@ export default function Payroll() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-4">
-          <Card className="lg:col-span-3 animate-slide-up">
+          <Card className="lg:col-span-3">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -357,17 +358,17 @@ export default function Payroll() {
                 <p className="text-muted-foreground text-center py-8">No payroll runs yet. Add employees and run your first payroll.</p>
               ) : (
                 <div className="grid gap-6 md:grid-cols-5">
-                  <div className="space-y-1"><p className="text-sm text-muted-foreground">Gross Pay</p><p className="text-2xl font-bold">K{Number(latestRun.total_gross || 0).toLocaleString()}</p></div>
-                  <div className="space-y-1"><p className="text-sm text-muted-foreground">PAYE</p><p className="text-xl font-semibold text-destructive">-K{Number(latestRun.total_paye || 0).toLocaleString()}</p></div>
-                  <div className="space-y-1"><p className="text-sm text-muted-foreground">NAPSA (10%)</p><p className="text-xl font-semibold text-destructive">-K{Number(latestRun.total_napsa_employee || 0).toLocaleString()}</p></div>
-                  <div className="space-y-1"><p className="text-sm text-muted-foreground">NHIMA (1%)</p><p className="text-xl font-semibold text-destructive">-K{Number(latestRun.total_nhima || 0).toLocaleString()}</p></div>
-                  <div className="space-y-1 p-4 rounded-lg bg-success/10 border border-success/20"><p className="text-sm text-success">Net Pay</p><p className="text-2xl font-bold text-success">K{Number(latestRun.total_net || 0).toLocaleString()}</p></div>
+                  <div className="space-y-1"><p className="text-sm text-muted-foreground">Gross Pay</p><p className="text-2xl font-bold">{formatZMW(latestRun.total_gross || 0)}</p></div>
+                  <div className="space-y-1"><p className="text-sm text-muted-foreground">PAYE</p><p className="text-xl font-semibold text-destructive">-{formatZMW(latestRun.total_paye || 0)}</p></div>
+                  <div className="space-y-1"><p className="text-sm text-muted-foreground">NAPSA (10%)</p><p className="text-xl font-semibold text-destructive">-{formatZMW(latestRun.total_napsa_employee || 0)}</p></div>
+                  <div className="space-y-1"><p className="text-sm text-muted-foreground">NHIMA (1%)</p><p className="text-xl font-semibold text-destructive">-{formatZMW(latestRun.total_nhima || 0)}</p></div>
+                  <div className="space-y-1 p-4 rounded-lg bg-success/10 border border-success/20"><p className="text-sm text-success">Net Pay</p><p className="text-2xl font-bold text-success">{formatZMW(latestRun.total_net || 0)}</p></div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <Card className="animate-slide-up" style={{ animationDelay: "50ms" }}>
+          <Card>
             <CardContent className="pt-4 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground"><Users className="h-4 w-4" /><span className="text-sm">Employees</span></div>
@@ -375,7 +376,7 @@ export default function Payroll() {
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground"><Wallet className="h-4 w-4" /><span className="text-sm">Monthly Payroll</span></div>
-                <span className="font-medium">K{totalPayroll.toLocaleString()}</span>
+                <span className="font-medium">{formatZMW(totalPayroll)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground"><Calendar className="h-4 w-4" /><span className="text-sm">Pay Date</span></div>
@@ -385,7 +386,7 @@ export default function Payroll() {
           </Card>
         </div>
 
-        <Card className="border-warning/30 bg-warning/5 animate-slide-up" style={{ animationDelay: "100ms" }}>
+        <Card className="border-warning/30 bg-warning/5">
           <CardContent className="py-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-5 w-5 text-warning mt-0.5" />
@@ -445,7 +446,7 @@ export default function Payroll() {
                               </div>
                             </td>
                             <td className="p-4 text-sm">{emp.department || "-"}</td>
-                            <td className="p-4 text-right font-medium">K{Number(emp.basic_salary || 0).toLocaleString()}</td>
+                            <td className="p-4 text-right font-medium">{formatZMW(emp.basic_salary || 0)}</td>
                             <td className="p-4 text-sm">{emp.napsa_number || "-"}</td>
                             <td className="p-4">
                               <Badge variant="outline" className={emp.is_active ? "bg-success/10 text-success" : "bg-muted"}>
@@ -503,11 +504,11 @@ export default function Payroll() {
                           <tr key={run.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                             <td className="p-4 font-medium">{run.pay_period}</td>
                             <td className="p-4 text-sm">{new Date(run.pay_date).toLocaleDateString()}</td>
-                            <td className="p-4 text-right">K{Number(run.total_gross || 0).toLocaleString()}</td>
+                            <td className="p-4 text-right">{formatZMW(run.total_gross || 0)}</td>
                             <td className="p-4 text-right text-destructive">
-                              -K{(Number(run.total_paye || 0) + Number(run.total_napsa_employee || 0) + Number(run.total_nhima || 0)).toLocaleString()}
+                              {formatZMW(-(Number(run.total_paye || 0) + Number(run.total_napsa_employee || 0) + Number(run.total_nhima || 0)))}
                             </td>
-                            <td className="p-4 text-right font-semibold text-success">K{Number(run.total_net || 0).toLocaleString()}</td>
+                            <td className="p-4 text-right font-semibold text-success">{formatZMW(run.total_net || 0)}</td>
                             <td className="p-4">
                               <Badge variant="outline" className="bg-success/10 text-success">{run.status}</Badge>
                             </td>
@@ -538,7 +539,7 @@ export default function Payroll() {
                       <div key={index} className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
                         <div className="flex-1">
                           <p className="font-medium">{band.rate_name}</p>
-                          <p className="text-sm text-muted-foreground">K{Number(band.min_amount || 0).toLocaleString()} - {band.max_amount ? `K${Number(band.max_amount).toLocaleString()}` : "Above"}</p>
+                          <p className="text-sm text-muted-foreground">{formatZMW(band.min_amount || 0)} – {band.max_amount ? formatZMW(band.max_amount) : "and above"}</p>
                         </div>
                         <Badge variant="outline" className={Number(band.rate) === 0 ? "bg-success/10 text-success" : ""}>{(Number(band.rate) * 100).toFixed(0)}%</Badge>
                       </div>

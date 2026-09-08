@@ -19,6 +19,7 @@ import {
   Calendar, DollarSign, Activity
 } from "lucide-react";
 import { format } from "date-fns";
+import { formatZMW } from "@/lib/currency";
 
 const statusColors: Record<string, string> = {
   active: "bg-green-100 text-green-800", inactive: "bg-gray-100 text-gray-800",
@@ -119,7 +120,7 @@ export default function Assets() {
     setFuelForm({ vehicle_id: "", fill_date: new Date().toISOString().split("T")[0], fuel_type: "diesel", quantity: "", unit_price: "", mileage_at_fill: "", station: "", driver: "", receipt_number: "", notes: "" });
   };
 
-  const fmt = (n?: number | null) => n != null ? `K ${Number(n).toLocaleString("en", { minimumFractionDigits: 2 })}` : "—";
+  const fmt = (n?: number | null) => n != null ? formatZMW(n) : "—";
 
   return (
     <AppLayout>
@@ -431,8 +432,8 @@ export default function Assets() {
               </Select>
             </div>
             <div><Label>Quantity (L) *</Label><Input required type="number" step="0.1" value={fuelForm.quantity} onChange={e => setFuelForm(p => ({ ...p, quantity: e.target.value }))} /></div>
-            <div><Label>Unit Price (K) *</Label><Input required type="number" step="0.01" value={fuelForm.unit_price} onChange={e => setFuelForm(p => ({ ...p, unit_price: e.target.value }))} /></div>
-            <div><Label>Total</Label><Input readOnly value={fuelForm.quantity && fuelForm.unit_price ? `K ${(Number(fuelForm.quantity) * Number(fuelForm.unit_price)).toFixed(2)}` : ""} /></div>
+            <div><Label>Unit price (ZMW) *</Label><Input required type="number" step="0.01" value={fuelForm.unit_price} onChange={e => setFuelForm(p => ({ ...p, unit_price: e.target.value }))} /></div>
+            <div><Label>Total</Label><Input readOnly value={fuelForm.quantity && fuelForm.unit_price ? formatZMW(Number(fuelForm.quantity) * Number(fuelForm.unit_price)) : ""} /></div>
             <div><Label>Mileage (km)</Label><Input type="number" value={fuelForm.mileage_at_fill} onChange={e => setFuelForm(p => ({ ...p, mileage_at_fill: e.target.value }))} /></div>
             <div><Label>Station</Label><Input value={fuelForm.station} onChange={e => setFuelForm(p => ({ ...p, station: e.target.value }))} /></div>
             <div><Label>Driver</Label><Input value={fuelForm.driver} onChange={e => setFuelForm(p => ({ ...p, driver: e.target.value }))} /></div>

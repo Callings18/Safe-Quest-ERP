@@ -12,6 +12,7 @@ import { useEmployees, useCreateEmployee, useUpdateEmployee, useEmployeeStats } 
 import { useAttendance, useClockIn, useClockOut } from "@/hooks/useAttendance";
 import { Loader2, Plus, Users, Building2, DollarSign, UserCheck, Search, Pencil } from "lucide-react";
 import { format } from "date-fns";
+import { formatZMW } from "@/lib/currency";
 
 export default function HR() {
   const { data: employees, isLoading } = useEmployees();
@@ -82,7 +83,7 @@ export default function HR() {
             { title: "Total Employees", value: stats?.total || 0, icon: Users },
             { title: "Active", value: stats?.active || 0, icon: UserCheck },
             { title: "Departments", value: stats?.departmentCount || 0, icon: Building2 },
-            { title: "Monthly Payroll", value: `K${((stats?.totalSalary || 0) / 1000).toFixed(0)}K`, icon: DollarSign },
+            { title: "Monthly Payroll", value: formatZMW(stats?.totalSalary || 0), icon: DollarSign },
           ].map(kpi => (
             <Card key={kpi.title}>
               <CardContent className="p-4">
@@ -175,7 +176,7 @@ export default function HR() {
                 <div><Label>Department</Label><Input value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} /></div>
                 <div><Label>Job Title</Label><Input value={form.job_title} onChange={e => setForm(f => ({ ...f, job_title: e.target.value }))} /></div>
                 <div><Label>Hire Date *</Label><Input required type="date" value={form.hire_date} onChange={e => setForm(f => ({ ...f, hire_date: e.target.value }))} /></div>
-                <div><Label>Basic Salary (K)</Label><Input type="number" value={form.basic_salary} onChange={e => setForm(f => ({ ...f, basic_salary: e.target.value }))} /></div>
+                <div><Label>Basic salary (ZMW)</Label><Input type="number" value={form.basic_salary} onChange={e => setForm(f => ({ ...f, basic_salary: e.target.value }))} /></div>
                 <div><Label>Bank Name</Label><Input value={form.bank_name} onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))} /></div>
                 <div><Label>Bank Account</Label><Input value={form.bank_account} onChange={e => setForm(f => ({ ...f, bank_account: e.target.value }))} /></div>
                 <div><Label>TPIN</Label><Input value={form.tax_pin} onChange={e => setForm(f => ({ ...f, tax_pin: e.target.value }))} /></div>

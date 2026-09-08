@@ -7,8 +7,9 @@ import { useProjectStats } from "@/hooks/useProjects";
 import { useEmployeeStats } from "@/hooks/useHR";
 import { useProcurementStats } from "@/hooks/useProcurement";
 import { useAssetStats } from "@/hooks/useAssets";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { Wallet, Users, FolderKanban, Landmark, Truck, ShoppingCart } from "lucide-react";
+import { formatZMW, formatZMWAxis } from "@/lib/currency";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
@@ -40,12 +41,12 @@ export default function Reports() {
   ];
 
   const overviewCards = [
-    { title: "Total Revenue", value: `K${((invoiceStats?.totalInvoiced || 0) / 1000).toFixed(0)}K`, icon: Wallet, color: "text-primary" },
+    { title: "Total Revenue", value: formatZMW(invoiceStats?.totalInvoiced || 0), icon: Wallet, color: "text-primary" },
     { title: "Active Projects", value: projectStats?.active || 0, icon: FolderKanban, color: "text-info" },
-    { title: "Loan Portfolio", value: `K${((loanStats?.outstanding || 0) / 1000).toFixed(0)}K`, icon: Landmark, color: "text-warning" },
+    { title: "Loan Portfolio", value: formatZMW(loanStats?.outstanding || 0), icon: Landmark, color: "text-warning" },
     { title: "Employees", value: employeeStats?.active || 0, icon: Users, color: "text-success" },
-    { title: "Asset Value", value: `K${((assetStats?.totalAssetValue || 0) / 1000).toFixed(0)}K`, icon: Truck, color: "text-destructive" },
-    { title: "Procurement Spend", value: `K${((procurementStats?.totalSpend || 0) / 1000).toFixed(0)}K`, icon: ShoppingCart, color: "text-primary" },
+    { title: "Asset Value", value: formatZMW(assetStats?.totalAssetValue || 0), icon: Truck, color: "text-destructive" },
+    { title: "Procurement Spend", value: formatZMW(procurementStats?.totalSpend || 0), icon: ShoppingCart, color: "text-primary" },
   ];
 
   return (
@@ -83,8 +84,8 @@ export default function Reports() {
                   <BarChart data={revenueData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={v => `K${(v/1000).toFixed(0)}K`} />
-                    <Tooltip formatter={(v: number) => `K${v.toLocaleString()}`} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={v => formatZMWAxis(v)} />
+                    <Tooltip formatter={(v: number) => formatZMW(v)} />
                     <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -117,8 +118,8 @@ export default function Reports() {
                   <BarChart data={loanData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={v => `K${(v/1000).toFixed(0)}K`} />
-                    <Tooltip formatter={(v: number) => `K${v.toLocaleString()}`} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={v => formatZMWAxis(v)} />
+                    <Tooltip formatter={(v: number) => formatZMW(v)} />
                     <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>

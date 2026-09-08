@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProjects, useProjectStats, useCreateProject } from "@/hooks/useProjects";
 import { Loader2, Plus, MapPin, Calendar, Users, DollarSign, MoreHorizontal, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { formatZMW } from "@/lib/currency";
 
 const statusConfig: Record<string, { color: string; icon: any }> = {
   planning: { color: "bg-muted text-muted-foreground border-border", icon: Clock },
@@ -75,7 +76,7 @@ export default function Projects() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Budget (K)</Label>
+                    <Label>Budget (ZMW)</Label>
                     <Input type="number" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} />
                   </div>
                 </div>
@@ -96,7 +97,7 @@ export default function Projects() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
-          <Card className="animate-slide-up">
+          <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div><p className="text-sm text-muted-foreground">Active Projects</p><p className="text-2xl font-bold">{stats?.active || 0}</p></div>
@@ -104,15 +105,15 @@ export default function Projects() {
               </div>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: "50ms" }}>
+          <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
-                <div><p className="text-sm text-muted-foreground">Total Budget</p><p className="text-2xl font-bold">K{((stats?.totalBudget || 0) / 1000000).toFixed(2)}M</p></div>
+                <div><p className="text-sm text-muted-foreground">Total Budget</p><p className="text-2xl font-bold">{formatZMW(stats?.totalBudget || 0)}</p></div>
                 <div className="p-3 rounded-xl bg-success/10"><DollarSign className="h-5 w-5 text-success" /></div>
               </div>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: "100ms" }}>
+          <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div><p className="text-sm text-muted-foreground">Construction</p><p className="text-2xl font-bold">{stats?.construction || 0}</p></div>
@@ -120,7 +121,7 @@ export default function Projects() {
               </div>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: "150ms" }}>
+          <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div><p className="text-sm text-muted-foreground">Solar</p><p className="text-2xl font-bold">{stats?.solar || 0}</p></div>
@@ -148,7 +149,7 @@ export default function Projects() {
                   const config = statusConfig[project.status || "planning"];
                   const StatusIcon = config.icon;
                   return (
-                    <Card key={project.id} className="group hover:border-primary/30 transition-all cursor-pointer animate-slide-up" style={{ animationDelay: `${index * 50}ms` }}>
+                    <Card key={project.id} className="group hover:border-primary/30 transition-all cursor-pointer">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="space-y-1">
@@ -179,8 +180,8 @@ export default function Projects() {
                         </div>
                         {project.budget && (
                           <div className="flex justify-between items-center p-3 rounded-lg bg-muted/50">
-                            <div><p className="text-xs text-muted-foreground">Budget</p><p className="font-semibold">K{Number(project.budget).toLocaleString()}</p></div>
-                            <div className="text-right"><p className="text-xs text-muted-foreground">Spent</p><p className="font-semibold text-primary">K{Number(project.actual_cost || 0).toLocaleString()}</p></div>
+                            <div><p className="text-xs text-muted-foreground">Budget</p><p className="font-semibold">{formatZMW(project.budget)}</p></div>
+                            <div className="text-right"><p className="text-xs text-muted-foreground">Spent</p><p className="font-semibold text-primary">{formatZMW(project.actual_cost || 0)}</p></div>
                           </div>
                         )}
                       </CardContent>

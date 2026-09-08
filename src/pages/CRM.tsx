@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useLeads, useLeadStats, useCompanies, useContacts, useCreateLead, useCreateCompany } from "@/hooks/useCRM";
 import { Loader2, Search, Plus, Filter, MoreHorizontal, Mail, Building2, User } from "lucide-react";
+import { formatZMW } from "@/lib/currency";
 
 const stageColors: Record<string, string> = {
   new: "bg-muted text-muted-foreground",
@@ -81,7 +82,7 @@ export default function CRM() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Estimated Value (K)</Label>
+                    <Label>Estimated Value (ZMW)</Label>
                     <Input type="number" value={leadForm.value} onChange={(e) => setLeadForm({ ...leadForm, value: e.target.value })} />
                   </div>
                   <div className="space-y-2">
@@ -106,7 +107,7 @@ export default function CRM() {
                   <span className="text-lg font-bold">{stage.count}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">Pipeline value</p>
-                <p className="text-xl font-semibold text-primary">K{((stats?.totalValue || 0) / 1000).toFixed(0)}K</p>
+                <p className="text-xl font-semibold text-primary">{formatZMW(stats?.totalValue)}</p>
               </CardContent>
             </Card>
           ))}
@@ -161,7 +162,7 @@ export default function CRM() {
                                 </div>
                               </div>
                             </td>
-                            <td className="p-4"><span className="font-semibold">K{Number(lead.value || 0).toLocaleString()}</span></td>
+                            <td className="p-4"><span className="font-semibold">{formatZMW(lead.value || 0)}</span></td>
                             <td className="p-4"><Badge variant="outline" className={stageColors[lead.status || "new"]}>{lead.status}</Badge></td>
                             <td className="p-4 text-sm">{lead.source || "-"}</td>
                             <td className="p-4 text-sm text-muted-foreground">{new Date(lead.created_at).toLocaleDateString()}</td>

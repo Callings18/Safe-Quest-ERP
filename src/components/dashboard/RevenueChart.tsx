@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { formatZMW, formatZMWAxis } from "@/lib/currency";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -66,14 +67,14 @@ export function RevenueChart() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} tickFormatter={(value) => `K${(value / 1000).toFixed(0)}k`} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} tickFormatter={(value) => formatZMWAxis(value)} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: "hsl(var(--card))",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
                 }}
-                formatter={(value: number) => [`K${Number(value).toLocaleString()}`, ""]}
+                formatter={(value: number) => [formatZMW(value), ""]}
               />
               <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#colorRevenue)" />
               <Area type="monotone" dataKey="expenses" stroke="hsl(var(--muted-foreground))" strokeWidth={2} fill="url(#colorExpenses)" />

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLoans, useLoanProducts, useLoanStats, useCreateLoan, useApproveLoan } from "@/hooks/useLoans";
 import { Loader2, Plus, Landmark, TrendingUp, AlertTriangle, CheckCircle2, Clock, User, Calendar, DollarSign, Shield, Eye, MoreHorizontal, Wallet } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { formatZMW } from "@/lib/currency";
 
 const statusConfig: Record<string, { color: string; icon: any }> = {
   pending: { color: "bg-warning/10 text-warning border-warning/20", icon: Clock },
@@ -118,7 +119,7 @@ export default function Loans() {
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-2">
-                        <Label>Principal (K) *</Label>
+                        <Label>Principal (ZMW) *</Label>
                         <Input type="number" value={formData.principal} onChange={(e) => setFormData({ ...formData, principal: e.target.value })} required />
                       </div>
                       <div className="space-y-2">
@@ -169,7 +170,7 @@ export default function Loans() {
                       <Input value={formData.employer_phone} onChange={(e) => setFormData({ ...formData, employer_phone: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Monthly Income (K)</Label>
+                      <Label>Monthly income (ZMW)</Label>
                       <Input type="number" value={formData.monthly_income} onChange={(e) => setFormData({ ...formData, monthly_income: e.target.value })} />
                     </div>
                   </div>
@@ -212,7 +213,7 @@ export default function Loans() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Estimated Value (K)</Label>
+                      <Label>Estimated value (ZMW)</Label>
                       <Input type="number" value={formData.collateral_value} onChange={(e) => setFormData({ ...formData, collateral_value: e.target.value })} />
                     </div>
                     <div className="col-span-2 space-y-2">
@@ -237,34 +238,34 @@ export default function Loans() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          <Card className="animate-slide-up">
+          <Card>
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">Total Disbursed</p>
-              <p className="text-2xl font-bold">K{statsLoading ? "..." : ((stats?.totalDisbursed || 0) / 1000).toFixed(0)}K</p>
+              <p className="text-2xl font-bold">{statsLoading ? "..." : formatZMW(stats?.totalDisbursed || 0)}</p>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: "50ms" }}>
+          <Card>
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">Outstanding</p>
-              <p className="text-2xl font-bold text-primary">K{statsLoading ? "..." : ((stats?.outstanding || 0) / 1000).toFixed(0)}K</p>
+              <p className="text-2xl font-bold text-primary">{statsLoading ? "..." : formatZMW(stats?.outstanding || 0)}</p>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: "100ms" }}>
+          <Card>
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">Collected</p>
-              <p className="text-2xl font-bold text-success">K{statsLoading ? "..." : ((stats?.collected || 0) / 1000).toFixed(0)}K</p>
+              <p className="text-2xl font-bold text-success">{statsLoading ? "..." : formatZMW(stats?.collected || 0)}</p>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: "150ms" }}>
+          <Card>
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">Active Loans</p>
               <p className="text-2xl font-bold">{stats?.activeLoans || 0}</p>
             </CardContent>
           </Card>
-          <Card className="animate-slide-up" style={{ animationDelay: "200ms" }}>
+          <Card>
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">In Arrears</p>
-              <p className="text-2xl font-bold text-destructive">K{statsLoading ? "..." : ((stats?.arrears || 0) / 1000).toFixed(0)}K</p>
+              <p className="text-2xl font-bold text-destructive">{statsLoading ? "..." : formatZMW(stats?.arrears || 0)}</p>
             </CardContent>
           </Card>
         </div>
@@ -318,9 +319,9 @@ export default function Loans() {
                                 <p className="text-sm font-medium">{loan.loan_products?.name || "-"}</p>
                                 <p className="text-xs text-muted-foreground">{loan.term_months} months @ {loan.interest_rate}%</p>
                               </td>
-                              <td className="p-4 text-right font-medium">K{Number(loan.principal).toLocaleString()}</td>
+                              <td className="p-4 text-right font-medium">{formatZMW(loan.principal)}</td>
                               <td className="p-4 text-right">
-                                <span className="font-semibold text-primary">K{Number(loan.outstanding_amount || 0).toLocaleString()}</span>
+                                <span className="font-semibold text-primary">{formatZMW(loan.outstanding_amount || 0)}</span>
                               </td>
                               <td className="p-4">
                                 {loan.collateral_type ? (
@@ -393,7 +394,7 @@ export default function Loans() {
                       <div className="space-y-3">
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Amount Requested</span>
-                          <span className="font-semibold">K{Number(loan.principal).toLocaleString()}</span>
+                          <span className="font-semibold">{formatZMW(loan.principal)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Product</span>
@@ -434,7 +435,7 @@ export default function Loans() {
                         <h3 className="font-semibold">{product.name}</h3>
                         <p className="text-2xl font-bold text-primary">{product.interest_rate}%</p>
                         <p className="text-sm text-muted-foreground">
-                          K{Number(product.min_amount).toLocaleString()} - K{Number(product.max_amount).toLocaleString()} • {product.min_term}-{product.max_term} months
+                          {formatZMW(product.min_amount)} - {formatZMW(product.max_amount)} • {product.min_term}-{product.max_term} months
                         </p>
                       </div>
                     </CardContent>
@@ -467,11 +468,11 @@ export default function Loans() {
                   <div>
                     <h4 className="font-medium text-sm text-muted-foreground mb-3">Loan Details</h4>
                     <div className="space-y-2 text-sm">
-                      <div className="flex justify-between"><span className="text-muted-foreground">Principal:</span><span className="font-medium">K{Number(viewLoan.principal).toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Principal:</span><span className="font-medium">{formatZMW(viewLoan.principal)}</span></div>
                       <div className="flex justify-between"><span className="text-muted-foreground">Interest Rate:</span><span>{viewLoan.interest_rate}%</span></div>
                       <div className="flex justify-between"><span className="text-muted-foreground">Term:</span><span>{viewLoan.term_months} months</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Monthly Payment:</span><span className="font-medium">K{Number(viewLoan.monthly_payment).toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Outstanding:</span><span className="font-medium text-primary">K{Number(viewLoan.outstanding_amount || 0).toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Monthly Payment:</span><span className="font-medium">{formatZMW(viewLoan.monthly_payment)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Outstanding:</span><span className="font-medium text-primary">{formatZMW(viewLoan.outstanding_amount || 0)}</span></div>
                     </div>
                   </div>
                 </div>
@@ -484,7 +485,7 @@ export default function Loans() {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between"><span className="text-muted-foreground">Employer:</span><span>{viewLoan.employer_name}</span></div>
                           <div className="flex justify-between"><span className="text-muted-foreground">Phone:</span><span>{viewLoan.employer_phone || "-"}</span></div>
-                          <div className="flex justify-between"><span className="text-muted-foreground">Income:</span><span>K{Number(viewLoan.monthly_income || 0).toLocaleString()}</span></div>
+                          <div className="flex justify-between"><span className="text-muted-foreground">Income:</span><span>{formatZMW(viewLoan.monthly_income || 0)}</span></div>
                         </div>
                       </div>
                     )}
@@ -508,7 +509,7 @@ export default function Loans() {
                     </h4>
                     <div className="p-4 rounded-lg bg-muted/50 space-y-2 text-sm">
                       <div className="flex justify-between"><span className="text-muted-foreground">Type:</span><span className="font-medium">{viewLoan.collateral_type}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Value:</span><span>K{Number(viewLoan.collateral_value || 0).toLocaleString()}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Value:</span><span>{formatZMW(viewLoan.collateral_value || 0)}</span></div>
                       {viewLoan.collateral_description && (
                         <div className="pt-2 border-t">
                           <span className="text-muted-foreground">Description:</span>

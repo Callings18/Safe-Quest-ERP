@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Loader2 } from "lucide-react";
 import { useCreateInvoice, useUpdateInvoice } from "@/hooks/useInvoices";
 import { useCompanies } from "@/hooks/useCRM";
+import { formatZMW } from "@/lib/currency";
 
 interface InvoiceFormProps {
   onSuccess: () => void;
@@ -187,7 +188,7 @@ export function InvoiceForm({ onSuccess, editData }: InvoiceFormProps) {
                 </Select>
               </div>
               <div className="w-24 text-right pt-2 font-medium">
-                K{(item.quantity * item.unit_price * (1 + item.tax_rate / 100)).toLocaleString()}
+                {formatZMW((item.quantity * item.unit_price * (1 + item.tax_rate / 100)))}
               </div>
               <Button
                 type="button"
@@ -206,15 +207,15 @@ export function InvoiceForm({ onSuccess, editData }: InvoiceFormProps) {
           <div className="w-64 space-y-2 text-sm">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>K{subtotal.toLocaleString()}</span>
+              <span>{formatZMW(subtotal)}</span>
             </div>
             <div className="flex justify-between">
               <span>VAT:</span>
-              <span>K{taxAmount.toLocaleString()}</span>
+              <span>{formatZMW(taxAmount)}</span>
             </div>
             <div className="flex justify-between font-bold text-lg border-t pt-2">
               <span>Total:</span>
-              <span>K{total.toLocaleString()}</span>
+              <span>{formatZMW(total)}</span>
             </div>
           </div>
         </div>

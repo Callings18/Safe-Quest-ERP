@@ -81,7 +81,7 @@ export function TopBar() {
                   <span className="h-2 w-2 rounded-full bg-success" />
                   <span className="font-medium text-sm">Loan repayment received</span>
                 </div>
-                <span className="text-xs text-muted-foreground pl-4">K5,000 from Peter Banda • 1 hour ago</span>
+                <span className="text-xs text-muted-foreground pl-4">ZMW 5,000.00 from Peter Banda • 1 hour ago</span>
               </DropdownMenuItem>
               <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
                 <div className="flex items-center gap-2">
