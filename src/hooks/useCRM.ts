@@ -141,3 +141,45 @@ export function useCreateCompany() {
     },
   });
 }
+
+export function useCreateContact() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (contact: {
+      first_name: string;
+      last_name?: string;
+      email?: string;
+      phone?: string;
+      job_title?: string;
+      company_id?: string;
+    }) => {
+      const { data, error } = await supabase.from("contacts").insert({
+        ...contact,
+        company_id: contact.company_id || null,
+      }).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      toast.success("Contact added");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
+
+export function useUpdateLeadStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "new" | "contacted" | "qualified" | "proposal" | "negotiation" | "won" | "lost" }) => {
+      const { error } = await supabase.from("leads").update({ status }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead_stats"] });
+      toast.success("Lead updated");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}

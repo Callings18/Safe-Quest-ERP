@@ -90,3 +90,28 @@ export function useCreateComplianceDocument() {
     },
   });
 }
+
+export function useRenewComplianceDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const next = new Date();
+      next.setFullYear(next.getFullYear() + 1);
+      const { error } = await supabase
+        .from("compliance_documents")
+        .update({
+          expiry_date: next.toISOString().slice(0, 10),
+          issue_date: new Date().toISOString().slice(0, 10),
+          status: "valid",
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["compliance_documents"] });
+      queryClient.invalidateQueries({ queryKey: ["compliance_stats"] });
+      toast.success("Document renewed for one year");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}

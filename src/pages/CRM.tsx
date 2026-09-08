@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useLeads, useLeadStats, useCompanies, useContacts, useCreateLead, useCreateCompany } from "@/hooks/useCRM";
+import { useLeads, useLeadStats, useCompanies, useContacts, useCreateLead, useCreateCompany, useCreateContact, useUpdateLeadStatus } from "@/hooks/useCRM";
 import { Loader2, Search, Plus, Filter, MoreHorizontal, Mail, Building2, User } from "lucide-react";
 import { formatZMW } from "@/lib/currency";
 
@@ -29,17 +29,26 @@ export default function CRM() {
   const { data: contacts, isLoading: contactsLoading } = useContacts();
   const createLead = useCreateLead();
   const createCompany = useCreateCompany();
+  const createContact = useCreateContact();
+  const updateLeadStatus = useUpdateLeadStatus();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [contactDialog, setContactDialog] = useState(false);
+  const [contactForm, setContactForm] = useState({ first_name: "", last_name: "", email: "", phone: "", company_id: "" });
 
   const [leadDialog, setLeadDialog] = useState(false);
   const [companyDialog, setCompanyDialog] = useState(false);
-  const [leadForm, setLeadForm] = useState({ title: "", description: "", value: "", source: "" });
+  const [leadForm, setLeadForm] = useState({ title: "", description: "", value: "", source: "", company_id: "" });
   const [companyForm, setCompanyForm] = useState({ name: "", industry: "", phone: "", email: "", city: "" });
 
   const handleCreateLead = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createLead.mutateAsync({ ...leadForm, value: Number(leadForm.value) || undefined });
+    await createLead.mutateAsync({
+      ...leadForm,
+      value: Number(leadForm.value) || undefined,
+      company_id: leadForm.company_id || undefined,
+    });
     setLeadDialog(false);
-    setLeadForm({ title: "", description: "", value: "", source: "" });
+    setLeadForm({ title: "", description: "", value: "", source: "", company_id: "" });
   };
 
   const handleCreateCompany = async (e: React.FormEvent) => {
@@ -48,6 +57,11 @@ export default function CRM() {
     setCompanyDialog(false);
     setCompanyForm({ name: "", industry: "", phone: "", email: "", city: "" });
   };
+
+  const q = searchTerm.toLowerCase();
+  const filteredLeads = leads?.filter((l) => `${l.title} ${l.description || ""} ${l.source || ""} ${l.status}`.toLowerCase().includes(q));
+  const filteredContacts = contacts?.filter((c) => `${c.first_name} ${c.last_name || ""} ${c.email || ""} ${c.companies?.name || ""}`.toLowerCase().includes(q));
+  const filteredCompanies = companies?.filter((c) => `${c.name} ${c.industry || ""} ${c.city || ""}`.toLowerCase().includes(q));
 
   const stages = [
     { name: "new", count: stats?.new || 0 },
@@ -90,6 +104,19 @@ export default function CRM() {
                     <Input value={leadForm.source} onChange={(e) => setLeadForm({ ...leadForm, source: e.target.value })} placeholder="e.g. Referral, Website" />
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label>Company</Label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={leadForm.company_id}
+                    onChange={(e) => setLeadForm({ ...leadForm, company_id: e.target.value })}
+                  >
+                    <option value="">None</option>
+                    {companies?.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
                 <Button type="submit" className="w-full" disabled={createLead.isPending}>
                   {createLead.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Create Lead
                 </Button>
@@ -123,7 +150,7 @@ export default function CRM() {
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search..." className="pl-9 w-64" />
+                <Input placeholder="Search..." className="pl-9 w-64" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
               </div>
             </div>
           </div>
@@ -133,7 +160,7 @@ export default function CRM() {
               <CardContent className="p-0">
                 {leadsLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
-                ) : !leads?.length ? (
+                ) : !filteredLeads?.length ? (
                   <div className="text-center py-12 text-muted-foreground">No leads yet. Add your first lead to get started.</div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -149,7 +176,7 @@ export default function CRM() {
                         </tr>
                       </thead>
                       <tbody>
-                        {leads.map((lead) => (
+                        {filteredLeads.map((lead) => (
                           <tr key={lead.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                             <td className="p-4">
                               <div className="flex items-center gap-3">
@@ -170,9 +197,11 @@ export default function CRM() {
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>View Details</DropdownMenuItem>
-                                  <DropdownMenuItem>Edit Lead</DropdownMenuItem>
-                                  <DropdownMenuItem>Create Quote</DropdownMenuItem>
+                                  {(["contacted", "qualified", "proposal", "negotiation", "won", "lost"] as const).map((s) => (
+                                    <DropdownMenuItem key={s} onClick={() => updateLeadStatus.mutate({ id: lead.id, status: s })}>
+                                      Mark {s}
+                                    </DropdownMenuItem>
+                                  ))}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </td>
@@ -187,11 +216,52 @@ export default function CRM() {
           </TabsContent>
 
           <TabsContent value="contacts">
+            <div className="flex justify-end mb-4">
+              <Dialog open={contactDialog} onOpenChange={setContactDialog}>
+                <DialogTrigger asChild><Button variant="outline" className="gap-2"><Plus className="h-4 w-4" />Add Contact</Button></DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>Add Contact</DialogTitle></DialogHeader>
+                  <form
+                    className="space-y-4"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      await createContact.mutateAsync({
+                        ...contactForm,
+                        company_id: contactForm.company_id || undefined,
+                      });
+                      setContactDialog(false);
+                      setContactForm({ first_name: "", last_name: "", email: "", phone: "", company_id: "" });
+                    }}
+                  >
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2"><Label>First name</Label><Input required value={contactForm.first_name} onChange={(e) => setContactForm({ ...contactForm, first_name: e.target.value })} /></div>
+                      <div className="space-y-2"><Label>Last name</Label><Input value={contactForm.last_name} onChange={(e) => setContactForm({ ...contactForm, last_name: e.target.value })} /></div>
+                    </div>
+                    <div className="space-y-2"><Label>Email</Label><Input type="email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} /></div>
+                    <div className="space-y-2"><Label>Phone</Label><Input value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })} /></div>
+                    <div className="space-y-2">
+                      <Label>Company</Label>
+                      <select
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={contactForm.company_id}
+                        onChange={(e) => setContactForm({ ...contactForm, company_id: e.target.value })}
+                      >
+                        <option value="">None</option>
+                        {companies?.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={createContact.isPending}>Save contact</Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
             <Card>
               <CardContent className="p-0">
                 {contactsLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
-                ) : !contacts?.length ? (
+                ) : !filteredContacts?.length ? (
                   <div className="text-center py-12 text-muted-foreground">No contacts yet.</div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -205,7 +275,7 @@ export default function CRM() {
                         </tr>
                       </thead>
                       <tbody>
-                        {contacts.map((contact) => (
+                        {filteredContacts.map((contact) => (
                           <tr key={contact.id} className="border-b border-border hover:bg-muted/30">
                             <td className="p-4 font-medium">{contact.first_name} {contact.last_name}</td>
                             <td className="p-4 text-sm">{contact.companies?.name || "-"}</td>
@@ -248,7 +318,7 @@ export default function CRM() {
               <CardContent className="p-0">
                 {companiesLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
-                ) : !companies?.length ? (
+                ) : !filteredCompanies?.length ? (
                   <div className="text-center py-12 text-muted-foreground">No companies yet.</div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -262,7 +332,7 @@ export default function CRM() {
                         </tr>
                       </thead>
                       <tbody>
-                        {companies.map((company) => (
+                        {filteredCompanies.map((company) => (
                           <tr key={company.id} className="border-b border-border hover:bg-muted/30">
                             <td className="p-4 font-medium">{company.name}</td>
                             <td className="p-4 text-sm">{company.industry || "-"}</td>
