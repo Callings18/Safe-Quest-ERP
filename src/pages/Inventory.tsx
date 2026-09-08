@@ -20,6 +20,7 @@ export default function Inventory() {
   const createProduct = useCreateProduct();
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [form, setForm] = useState({ name: "", sku: "", description: "", category_id: "", unit: "pcs", cost_price: "", selling_price: "", reorder_level: "10" });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,6 +34,10 @@ export default function Inventory() {
     setDialogOpen(false);
     setForm({ name: "", sku: "", description: "", category_id: "", unit: "pcs", cost_price: "", selling_price: "", reorder_level: "10" });
   };
+
+  const filteredProducts = products?.filter((p) =>
+    `${p.name} ${p.sku} ${p.product_categories?.name || ""}`.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <AppLayout>
@@ -139,7 +144,7 @@ export default function Inventory() {
             </TabsList>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search products..." className="pl-9 w-64" />
+              <Input placeholder="Search products..." className="pl-9 w-64" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
           </div>
 
@@ -148,7 +153,7 @@ export default function Inventory() {
               <CardContent className="p-0">
                 {productsLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
-                ) : !products?.length ? (
+                ) : !filteredProducts?.length ? (
                   <div className="text-center py-12 text-muted-foreground">No products yet. Add your first product.</div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -163,7 +168,7 @@ export default function Inventory() {
                         </tr>
                       </thead>
                       <tbody>
-                        {products.map((product) => (
+                        {filteredProducts.map((product) => (
                           <tr key={product.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                             <td className="p-4">
                               <div><p className="font-medium">{product.name}</p><p className="text-xs text-muted-foreground">{product.sku}</p></div>

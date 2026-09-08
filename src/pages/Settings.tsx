@@ -183,10 +183,35 @@ export default function Settings() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="space-y-2">
-                      <Button type="button" variant="outline" size="sm" className="gap-2">
+                      <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => document.getElementById("avatar-file")?.click()}>
                         <Camera className="h-4 w-4" />
                         Change Photo
                       </Button>
+                      <input
+                        id="avatar-file"
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file || !user?.id) return;
+                          if (file.size > 2 * 1024 * 1024) {
+                            toast.error("Max 2MB");
+                            return;
+                          }
+                          const ext = file.name.split(".").pop() || "jpg";
+                          const path = `${user.id}/avatar.${ext}`;
+                          const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+                          if (error) {
+                            toast.error(error.message);
+                            return;
+                          }
+                          const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+                          await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", user.id);
+                          queryClient.invalidateQueries({ queryKey: ["profile"] });
+                          toast.success("Photo updated");
+                        }}
+                      />
                       <p className="text-xs text-muted-foreground">JPG, PNG or GIF. Max 2MB.</p>
                     </div>
                   </div>

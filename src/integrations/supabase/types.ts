@@ -3032,6 +3032,16 @@ export type Database = {
         }
         Returns: Json
       }
+      record_loan_repayment: {
+        Args: {
+          p_amount: number
+          p_loan_id: string
+          p_notes?: string | null
+          p_payment_method?: Database["public"]["Enums"]["payment_method"]
+          p_reference?: string | null
+        }
+        Returns: Json
+      }
     }
     Enums: {
       account_type: "asset" | "liability" | "equity" | "income" | "expense"

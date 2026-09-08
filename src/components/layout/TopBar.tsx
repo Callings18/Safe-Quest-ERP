@@ -10,23 +10,43 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { CommandPalette, useCommandPalette } from "./CommandPalette";
+import { formatDistanceToNow } from "date-fns";
 
 export function TopBar() {
+  const navigate = useNavigate();
+  const { open, setOpen } = useCommandPalette();
+  const { data: activities } = useQuery({
+    queryKey: ["topbar_activity"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("activity_log")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(8);
+      if (error) throw error;
+      return data;
+    },
+  });
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
-      {/* Search */}
+      <CommandPalette open={open} onOpenChange={setOpen} />
       <div className="relative w-full max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="search"
+          readOnly
+          onClick={() => setOpen(true)}
           placeholder="Search anything... (Ctrl+K)"
-          className="pl-10 bg-secondary/50 border-transparent focus:border-primary/30 focus:bg-background"
+          className="pl-10 bg-secondary/50 border-transparent focus:border-primary/30 focus:bg-background cursor-pointer"
         />
       </div>
 
-      {/* Actions */}
       <div className="flex items-center gap-2">
-        {/* Quick Actions */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="gap-2 bg-primary hover:bg-primary/90 shadow-md">
@@ -37,62 +57,49 @@ export function TopBar() {
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel>Create New</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>New Lead</DropdownMenuItem>
-            <DropdownMenuItem>New Project</DropdownMenuItem>
-            <DropdownMenuItem>New Invoice</DropdownMenuItem>
-            <DropdownMenuItem>New Purchase Order</DropdownMenuItem>
-            <DropdownMenuItem>New Loan Application</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/crm")}>New Lead</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/projects")}>New Project</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/invoicing")}>New Invoice</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/procurement")}>New Purchase Order</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/loans")}>New Loan Application</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Help */}
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => navigate("/settings")}>
           <HelpCircle className="h-5 w-5" />
         </Button>
 
-        {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
               <Bell className="h-5 w-5" />
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-destructive border-2 border-background">
-                5
-              </Badge>
+              {!!activities?.length && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-destructive border-2 border-background">
+                  {Math.min(activities.length, 9)}
+                </Badge>
+              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel className="flex items-center justify-between">
-              Notifications
-              <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary hover:text-primary/80">
-                Mark all read
-              </Button>
-            </DropdownMenuLabel>
+            <DropdownMenuLabel>Notifications</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <div className="max-h-80 overflow-y-auto">
-              <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-primary" />
-                  <span className="font-medium text-sm">Invoice #INV-2024-089 overdue</span>
-                </div>
-                <span className="text-xs text-muted-foreground pl-4">Client: Zambia Solar Ltd • 5 min ago</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-success" />
-                  <span className="font-medium text-sm">Loan repayment received</span>
-                </div>
-                <span className="text-xs text-muted-foreground pl-4">ZMW 5,000.00 from Peter Banda • 1 hour ago</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-warning" />
-                  <span className="font-medium text-sm">License expiring soon</span>
-                </div>
-                <span className="text-xs text-muted-foreground pl-4">PACRA Certificate • 7 days left</span>
-              </DropdownMenuItem>
+              {!activities?.length ? (
+                <p className="p-4 text-sm text-muted-foreground">No activity yet.</p>
+              ) : (
+                activities.map((a) => (
+                  <DropdownMenuItem key={a.id} className="flex flex-col items-start gap-1 py-3">
+                    <span className="font-medium text-sm">{a.action}</span>
+                    <span className="text-xs text-muted-foreground">{a.description}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}
+                    </span>
+                  </DropdownMenuItem>
+                ))
+              )}
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-center text-sm text-primary justify-center">
+            <DropdownMenuItem className="text-center text-sm text-primary justify-center" onClick={() => navigate("/notifications")}>
               View all notifications
             </DropdownMenuItem>
           </DropdownMenuContent>

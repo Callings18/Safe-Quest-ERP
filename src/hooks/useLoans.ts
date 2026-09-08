@@ -179,3 +179,49 @@ export function useApproveLoan() {
     onError: (error: Error) => toast.error(error.message),
   });
 }
+
+export function useLoanSchedule(loanId: string | undefined) {
+  return useQuery({
+    queryKey: ["loan_schedule", loanId],
+    queryFn: async () => {
+      if (!loanId) return [];
+      const { data, error } = await supabase
+        .from("loan_schedule")
+        .select("*")
+        .eq("loan_id", loanId)
+        .order("installment_number");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!loanId,
+  });
+}
+
+export function useRecordLoanRepayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      loan_id: string;
+      amount: number;
+      payment_method?: "cash" | "bank_transfer" | "mobile_money" | "cheque" | "card";
+      reference?: string;
+      notes?: string;
+    }) => {
+      const { error } = await supabase.rpc("record_loan_repayment", {
+        p_loan_id: input.loan_id,
+        p_amount: input.amount,
+        p_payment_method: input.payment_method ?? "mobile_money",
+        p_reference: input.reference ?? null,
+        p_notes: input.notes ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["loans"] });
+      queryClient.invalidateQueries({ queryKey: ["loan_stats"] });
+      queryClient.invalidateQueries({ queryKey: ["loan_schedule"] });
+      toast.success("Repayment recorded");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+}
