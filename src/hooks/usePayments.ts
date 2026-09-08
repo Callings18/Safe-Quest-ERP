@@ -45,51 +45,42 @@ export function useRecordPayment() {
       notes?: string;
       payment_date?: string;
     }) => {
-      // Get current invoice
+      const { error: payError } = await supabase.rpc("record_invoice_payment", {
+        p_invoice_id: payment.invoice_id,
+        p_amount: payment.amount,
+        p_payment_method: payment.payment_method as "cash" | "bank_transfer" | "mobile_money" | "cheque" | "card",
+        p_reference: payment.reference ?? null,
+        p_notes: payment.notes ?? null,
+        p_payment_date: payment.payment_date || new Date().toISOString().split("T")[0],
+      });
+
+      if (!payError) return { ok: true };
+
       const { data: invoice, error: invError } = await supabase
         .from("invoices")
         .select("total, amount_paid")
         .eq("id", payment.invoice_id)
         .single();
+      if (invError) throw payError;
 
-      if (invError) throw invError;
+      const { error: insertErr } = await supabase.from("payments").insert({
+        invoice_id: payment.invoice_id,
+        amount: payment.amount,
+        payment_method: payment.payment_method as "cash" | "bank_transfer" | "mobile_money" | "cheque" | "card",
+        reference: payment.reference,
+        notes: payment.notes,
+        payment_date: payment.payment_date || new Date().toISOString().split("T")[0],
+      });
+      if (insertErr) throw insertErr;
 
-      // Insert payment
-      const { data: paymentRecord, error: payError } = await supabase
-        .from("payments")
-        .insert({
-          invoice_id: payment.invoice_id,
-          amount: payment.amount,
-          payment_method: payment.payment_method as "cash" | "bank_transfer" | "mobile_money" | "cheque" | "card",
-          reference: payment.reference,
-          notes: payment.notes,
-          payment_date: payment.payment_date || new Date().toISOString().split("T")[0],
-        })
-        .select()
-        .single();
-
-      if (payError) throw payError;
-
-      // Update invoice amount_paid and status
       const newAmountPaid = (Number(invoice.amount_paid) || 0) + payment.amount;
       const total = Number(invoice.total) || 0;
-      
-      let newStatus: "partial" | "paid" = "partial";
-      if (newAmountPaid >= total) {
-        newStatus = "paid";
-      }
-
-      const { error: updateError } = await supabase
+      await supabase
         .from("invoices")
-        .update({ 
-          amount_paid: newAmountPaid,
-          status: newStatus
-        })
+        .update({ amount_paid: newAmountPaid, status: newAmountPaid >= total ? "paid" : "partial" })
         .eq("id", payment.invoice_id);
 
-      if (updateError) throw updateError;
-
-      return paymentRecord;
+      return { ok: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });

@@ -1,1 +1,10 @@
 project_id = "rzrvydycpncmzenwbnzx"
+
+[functions.process-payroll]
+verify_jwt = true
+
+[functions.record-payment]
+verify_jwt = true
+
+[functions.generate-loan-schedule]
+verify_jwt = true

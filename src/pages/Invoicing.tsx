@@ -59,6 +59,7 @@ export default function Invoicing() {
   const createDeliveryNote = useCreateDeliveryNoteFromInvoice();
   const updateDeliveryStatus = useUpdateDeliveryNoteStatus();
 
+  const [searchTerm, setSearchTerm] = useState("");
   const [quotationDialogOpen, setQuotationDialogOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -110,6 +111,14 @@ export default function Invoicing() {
     setEditInvoice(null);
   };
 
+  const q = searchTerm.toLowerCase();
+  const filteredQuotations = quotations?.filter((qt: any) =>
+    `${qt.quotation_number} ${qt.companies?.name || ""}`.toLowerCase().includes(q)
+  );
+  const filteredInvoices = invoices?.filter((inv: any) =>
+    `${inv.invoice_number} ${inv.companies?.name || ""}`.toLowerCase().includes(q)
+  );
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -128,7 +137,7 @@ export default function Invoicing() {
         <Tabs defaultValue="quotations" className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <TabsList><TabsTrigger value="quotations">Quotations</TabsTrigger><TabsTrigger value="invoices">Invoices</TabsTrigger><TabsTrigger value="delivery">Delivery Notes</TabsTrigger><TabsTrigger value="payments">Payments</TabsTrigger><TabsTrigger value="templates">Templates</TabsTrigger></TabsList>
-            <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." className="pl-9 w-64" /></div>
+            <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." className="pl-9 w-64" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
           </div>
 
           <TabsContent value="quotations">
@@ -143,9 +152,9 @@ export default function Invoicing() {
                   </DialogContent>
                 </Dialog>
               </div>
-              {quotationsLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div> : !quotations?.length ? <div className="text-center py-12 text-muted-foreground">No quotations yet.</div> : (
+              {quotationsLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div> : !filteredQuotations?.length ? <div className="text-center py-12 text-muted-foreground">No quotations yet.</div> : (
                 <div className="overflow-x-auto"><table className="w-full"><thead><tr className="border-b bg-muted/50"><th className="text-left p-3 font-medium text-muted-foreground">Quotation #</th><th className="text-left p-3 font-medium text-muted-foreground">Customer</th><th className="text-right p-3 font-medium text-muted-foreground">Amount</th><th className="text-left p-3 font-medium text-muted-foreground">Valid Until</th><th className="text-left p-3 font-medium text-muted-foreground">Status</th><th className="p-3"></th></tr></thead>
-                  <tbody>{quotations.map((qt: any) => (
+                  <tbody>{filteredQuotations.map((qt: any) => (
                     <tr key={qt.id} className="border-b hover:bg-muted/30">
                       <td className="p-3"><p className="font-medium text-primary cursor-pointer hover:underline" onClick={() => handleViewDocument("quotation", qt)}>{qt.quotation_number}</p></td>
                       <td className="p-3">{qt.companies?.name || "-"}</td>
@@ -177,9 +186,9 @@ export default function Invoicing() {
                   </DialogContent>
                 </Dialog>
               </div>
-              {invoicesLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div> : !invoices?.length ? <div className="text-center py-12 text-muted-foreground">No invoices yet.</div> : (
+              {invoicesLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div> : !filteredInvoices?.length ? <div className="text-center py-12 text-muted-foreground">No invoices yet.</div> : (
                 <div className="overflow-x-auto"><table className="w-full"><thead><tr className="border-b bg-muted/50"><th className="text-left p-3 font-medium text-muted-foreground">Invoice #</th><th className="text-left p-3 font-medium text-muted-foreground">Customer</th><th className="text-right p-3 font-medium text-muted-foreground">Amount</th><th className="text-left p-3 font-medium text-muted-foreground">Due Date</th><th className="text-left p-3 font-medium text-muted-foreground">Status</th><th className="p-3"></th></tr></thead>
-                  <tbody>{invoices.map((inv: any) => (
+                  <tbody>{filteredInvoices.map((inv: any) => (
                     <tr key={inv.id} className="border-b hover:bg-muted/30">
                       <td className="p-3"><p className="font-medium text-primary cursor-pointer hover:underline" onClick={() => handleViewDocument("invoice", inv)}>{inv.invoice_number}</p></td>
                       <td className="p-3">{inv.companies?.name || "-"}</td>

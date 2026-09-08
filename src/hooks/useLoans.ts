@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { nextDocumentNumber } from "@/lib/documents";
 
 export function useLoans() {
   return useQuery({
@@ -109,7 +110,7 @@ export function useCreateLoan() {
       const processing_fee = (loan.principal * product.processing_fee) / 100;
 
       // Generate loan number
-      const loan_number = `LN-${Date.now().toString(36).toUpperCase()}`;
+      const loan_number = await nextDocumentNumber("LN");
 
       const { data, error } = await supabase.from("loans").insert({
         loan_product_id: loan.loan_product_id,
@@ -151,5 +152,30 @@ export function useCreateLoan() {
     onError: (error) => {
       toast.error("Failed to create loan: " + error.message);
     },
+  });
+}
+
+export function useApproveLoan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("loans")
+        .update({
+          status: "active",
+          approval_date: new Date().toISOString().slice(0, 10),
+          disbursement_date: new Date().toISOString().slice(0, 10),
+        })
+        .eq("id", id);
+      if (error) throw error;
+      const { error: schedErr } = await supabase.rpc("generate_loan_schedule", { p_loan_id: id });
+      if (schedErr) throw schedErr;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["loans"] });
+      queryClient.invalidateQueries({ queryKey: ["loan_stats"] });
+      toast.success("Loan approved and schedule generated");
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 }

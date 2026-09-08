@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { nextDocumentNumber } from "@/lib/documents";
 
 export type BOQItemInput = {
   section_name?: string;
@@ -104,7 +105,7 @@ export function useSaveBOQ() {
         if (error) throw error;
         await supabase.from("boq_items").delete().eq("boq_id", boqId);
       } else {
-        const boq_number = `BOQ-${Date.now().toString(36).toUpperCase()}`;
+        const boq_number = await nextDocumentNumber("BOQ");
         const { data, error } = await supabase
           .from("boqs")
           .insert({ ...payload, boq_number })
@@ -206,7 +207,7 @@ export function useConvertBOQToQuotation() {
       const { data: quote, error: qErr } = await supabase
         .from("quotations")
         .insert({
-          quotation_number: `QTN-${Date.now().toString(36).toUpperCase()}`,
+          quotation_number: await nextDocumentNumber("QT"),
           company_id: boq.company_id,
           project_id: boq.project_id,
           status: "draft",

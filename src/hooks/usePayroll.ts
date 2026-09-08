@@ -127,7 +127,12 @@ export function useCreatePayrollRun() {
       pay_period: string;
       pay_date: string;
     }) => {
-      // Get all active employees
+      const { data: fnData, error: fnError } = await supabase.functions.invoke("process-payroll", {
+        body: { pay_period: payrollRun.pay_period, pay_date: payrollRun.pay_date },
+      });
+      if (!fnError && fnData && !(fnData as { error?: string }).error) {
+        return (fnData as { run: unknown }).run;
+      }
       const { data: employees, error: empError } = await supabase
         .from("employees")
         .select("*")

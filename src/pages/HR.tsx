@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useEmployees, useCreateEmployee, useUpdateEmployee, useEmployeeStats } from "@/hooks/useHR";
+import { useAttendance, useClockIn, useClockOut } from "@/hooks/useAttendance";
 import { Loader2, Plus, Users, Building2, DollarSign, UserCheck, Search, Pencil } from "lucide-react";
 import { format } from "date-fns";
 
@@ -17,6 +18,9 @@ export default function HR() {
   const { data: stats } = useEmployeeStats();
   const createEmployee = useCreateEmployee();
   const updateEmployee = useUpdateEmployee();
+  const { data: attendance } = useAttendance();
+  const clockIn = useClockIn();
+  const clockOut = useClockOut();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -90,6 +94,31 @@ export default function HR() {
             </Card>
           ))}
         </div>
+
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <p className="font-semibold">Today's attendance</p>
+            <div className="space-y-2">
+              {(employees || []).filter((e) => e.is_active).map((emp) => {
+                const rec = attendance?.find((a) => a.employee_id === emp.id);
+                return (
+                  <div key={emp.id} className="flex items-center justify-between text-sm border-b last:border-0 py-2">
+                    <span>{emp.first_name} {emp.last_name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">{rec ? rec.status : "not clocked"}</span>
+                      {!rec?.clock_in && (
+                        <Button size="sm" variant="outline" onClick={() => clockIn.mutate({ employee_id: emp.id })}>Clock in</Button>
+                      )}
+                      {rec?.clock_in && !rec.clock_out && (
+                        <Button size="sm" onClick={() => clockOut.mutate({ id: rec.id, clock_in: rec.clock_in })}>Clock out</Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

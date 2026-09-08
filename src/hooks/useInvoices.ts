@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { nextDocumentNumber } from "@/lib/documents";
 import { toast } from "sonner";
 
 export function useInvoices() {
@@ -91,7 +92,7 @@ export function useCreateInvoice() {
         tax_rate?: number;
       }>;
     }) => {
-      const invoice_number = `INV-${Date.now().toString(36).toUpperCase()}`;
+      const invoice_number = await nextDocumentNumber("INV");
       
       let subtotal = 0;
       let tax_amount = 0;

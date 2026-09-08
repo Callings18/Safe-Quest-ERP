@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useLoans, useLoanProducts, useLoanStats, useCreateLoan } from "@/hooks/useLoans";
+import { useLoans, useLoanProducts, useLoanStats, useCreateLoan, useApproveLoan } from "@/hooks/useLoans";
 import { Loader2, Plus, Landmark, TrendingUp, AlertTriangle, CheckCircle2, Clock, User, Calendar, DollarSign, Shield, Eye, MoreHorizontal, Wallet } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -39,6 +39,7 @@ export default function Loans() {
   const { data: products, isLoading: productsLoading } = useLoanProducts();
   const { data: stats, isLoading: statsLoading } = useLoanStats();
   const createLoan = useCreateLoan();
+  const approveLoan = useApproveLoan();
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewLoan, setViewLoan] = useState<any>(null);
@@ -409,7 +410,7 @@ export default function Loans() {
                       </div>
                       <div className="flex gap-2 mt-4">
                         <Button variant="outline" size="sm" className="flex-1" onClick={() => setViewLoan(loan)}>Review</Button>
-                        <Button size="sm" className="flex-1">Approve</Button>
+                        <Button size="sm" className="flex-1" onClick={() => approveLoan.mutate(loan.id)} disabled={approveLoan.isPending}>Approve</Button>
                       </div>
                     </CardContent>
                   </Card>

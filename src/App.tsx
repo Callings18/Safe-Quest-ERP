@@ -21,6 +21,7 @@ import Procurement from "./pages/Procurement";
 import HR from "./pages/HR";
 import Reports from "./pages/Reports";
 import Notifications from "./pages/Notifications";
+import Accounting from "./pages/Accounting";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/procurement" element={<ProtectedRoute><Procurement /></ProtectedRoute>} />
             <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
             <Route path="/hr" element={<ProtectedRoute><HR /></ProtectedRoute>} />
+            <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />

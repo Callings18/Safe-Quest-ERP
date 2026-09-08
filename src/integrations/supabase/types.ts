@@ -532,6 +532,60 @@ export type Database = {
           },
         ]
       }
+      company_settings: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          address: string | null
+          bank_branch: string | null
+          bank_name: string | null
+          city: string | null
+          company_name: string
+          currency: string
+          email: string | null
+          id: string
+          logo_url: string | null
+          phone: string | null
+          tpin: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          address?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          city?: string | null
+          company_name?: string
+          currency?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          tpin?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          address?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          city?: string | null
+          company_name?: string
+          currency?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          tpin?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       compliance_documents: {
         Row: {
           branch_id: string | null
@@ -2380,6 +2434,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          notification_prefs: Json
           phone: string | null
           updated_at: string
         }
@@ -2390,6 +2445,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          notification_prefs?: Json
           phone?: string | null
           updated_at?: string
         }
@@ -2400,6 +2456,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          notification_prefs?: Json
           phone?: string | null
           updated_at?: string
         }
@@ -2954,6 +3011,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_loan_schedule: { Args: { p_loan_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2962,6 +3020,18 @@ export type Database = {
         Returns: boolean
       }
       is_employee: { Args: { _user_id: string }; Returns: boolean }
+      next_document_number: { Args: { p_prefix: string }; Returns: string }
+      record_invoice_payment: {
+        Args: {
+          p_amount: number
+          p_invoice_id: string
+          p_notes?: string | null
+          p_payment_date?: string
+          p_payment_method: Database["public"]["Enums"]["payment_method"]
+          p_reference?: string | null
+        }
+        Returns: Json
+      }
     }
     Enums: {
       account_type: "asset" | "liability" | "equity" | "income" | "expense"

@@ -12,10 +12,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, User, Lock, Bell, Building2, Shield, LogOut, Save, Mail, Phone, Camera } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useCompanySettings, useUpdateCompanySettings, useMyRoles, useStaffUsers, useSetUserRole } from "@/hooks/useCompanySettings";
 
 export default function Settings() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, updatePassword } = useAuth();
   const queryClient = useQueryClient();
+  const { data: company } = useCompanySettings();
+  const updateCompany = useUpdateCompanySettings();
+  const { data: myRoles } = useMyRoles();
+  const { data: staff } = useStaffUsers();
+  const setRole = useSetUserRole();
+  const isAdmin = myRoles?.includes("admin");
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", user?.id],
@@ -36,6 +44,13 @@ export default function Settings() {
     full_name: "",
     phone: "",
   });
+  const [passwordForm, setPasswordForm] = useState({ current: "", next: "", confirm: "" });
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [companyForm, setCompanyForm] = useState({
+    company_name: "", tpin: "", address: "", city: "", phone: "", email: "",
+    bank_name: "", bank_branch: "", account_name: "", account_number: "",
+  });
+  const [prefs, setPrefs] = useState<Record<string, { email: boolean; sms: boolean }>>({});
 
   useEffect(() => {
     if (profile) {
@@ -43,8 +58,27 @@ export default function Settings() {
         full_name: profile.full_name || "",
         phone: profile.phone || "",
       });
+      const stored = (profile.notification_prefs || {}) as Record<string, { email: boolean; sms: boolean }>;
+      setPrefs(stored);
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (company) {
+      setCompanyForm({
+        company_name: company.company_name || "",
+        tpin: company.tpin || "",
+        address: company.address || "",
+        city: company.city || "",
+        phone: company.phone || "",
+        email: company.email || "",
+        bank_name: company.bank_name || "",
+        bank_branch: company.bank_branch || "",
+        account_name: company.account_name || "",
+        account_number: company.account_number || "",
+      });
+    }
+  }, [company]);
 
   const updateProfile = useMutation({
     mutationFn: async (data: typeof profileForm) => {
@@ -106,7 +140,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
             <TabsTrigger value="profile" className="gap-2">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Profile</span>
@@ -123,6 +157,12 @@ export default function Settings() {
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Company</span>
             </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="roles" className="gap-2">
+                <Shield className="h-4 w-4" />
+                <span className="hidden sm:inline">Roles</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Profile Tab */}
@@ -226,154 +266,170 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Current Password</Label>
-                  <Input type="password" placeholder="Enter current password" />
-                </div>
-                <div className="space-y-2">
                   <Label>New Password</Label>
-                  <Input type="password" placeholder="Enter new password" />
+                  <Input type="password" placeholder="Enter new password" value={passwordForm.next} onChange={(e) => setPasswordForm({ ...passwordForm, next: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Confirm New Password</Label>
-                  <Input type="password" placeholder="Confirm new password" />
+                  <Input type="password" placeholder="Confirm new password" value={passwordForm.confirm} onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} />
                 </div>
-                <Button className="gap-2">
+                <Button
+                  className="gap-2"
+                  disabled={savingPassword}
+                  onClick={async () => {
+                    if (passwordForm.next.length < 6) {
+                      toast.error("Password must be at least 6 characters");
+                      return;
+                    }
+                    if (passwordForm.next !== passwordForm.confirm) {
+                      toast.error("Passwords do not match");
+                      return;
+                    }
+                    setSavingPassword(true);
+                    const { error } = await updatePassword(passwordForm.next);
+                    setSavingPassword(false);
+                    if (error) toast.error(error.message);
+                    else {
+                      toast.success("Password updated");
+                      setPasswordForm({ current: "", next: "", confirm: "" });
+                    }
+                  }}
+                >
+                  {savingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
                   <Lock className="h-4 w-4" />
                   Update Password
                 </Button>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Two-Factor Authentication</CardTitle>
-                <CardDescription>Add an extra layer of security to your account.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <Shield className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Authenticator App</p>
-                      <p className="text-sm text-muted-foreground">Use an app like Google Authenticator</p>
-                    </div>
-                  </div>
-                  <Button variant="outline">Enable</Button>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
-          {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>Choose how you want to be notified.</CardDescription>
+                <CardDescription>Saved to your profile on this Supabase project.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {[
-                  { label: "Invoice Reminders", description: "Get notified about overdue invoices" },
-                  { label: "Payment Received", description: "Notification when payment is received" },
-                  { label: "Loan Repayments", description: "Reminders for upcoming loan repayments" },
-                  { label: "Compliance Deadlines", description: "Alerts for document expirations" },
-                  { label: "Payroll Processing", description: "Notifications for payroll runs" },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                    <div>
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                  { key: "invoice_reminders", label: "Invoice Reminders", description: "Get notified about overdue invoices" },
+                  { key: "payment_received", label: "Payment Received", description: "Notification when payment is received" },
+                  { key: "loan_repayments", label: "Loan Repayments", description: "Reminders for upcoming loan repayments" },
+                  { key: "compliance_deadlines", label: "Compliance Deadlines", description: "Alerts for document expirations" },
+                  { key: "payroll_processing", label: "Payroll Processing", description: "Notifications for payroll runs" },
+                ].map((item) => {
+                  const value = prefs[item.key] || { email: true, sms: false };
+                  return (
+                    <div key={item.key} className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                      <div>
+                        <p className="font-medium">{item.label}</p>
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm">
+                        <label className="flex items-center gap-2">
+                          <Switch
+                            checked={value.email}
+                            onCheckedChange={(checked) => setPrefs((p) => ({ ...p, [item.key]: { ...value, email: checked } }))}
+                          />
+                          Email
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <Switch
+                            checked={value.sms}
+                            onCheckedChange={(checked) => setPrefs((p) => ({ ...p, [item.key]: { ...value, sms: checked } }))}
+                          />
+                          SMS
+                        </label>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" defaultChecked className="rounded" />
-                        Email
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded" />
-                        SMS
-                      </label>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
+                <Button
+                  className="gap-2"
+                  onClick={async () => {
+                    if (!user?.id) return;
+                    const { error } = await supabase.from("profiles").update({ notification_prefs: prefs }).eq("id", user.id);
+                    if (error) toast.error(error.message);
+                    else toast.success("Preferences saved");
+                  }}
+                >
+                  <Save className="h-4 w-4" />Save preferences
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Company Tab */}
           <TabsContent value="company" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Company Information</CardTitle>
-                <CardDescription>Your company details used on invoices and documents.</CardDescription>
+                <CardDescription>Used on invoices and official documents.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Company Name</Label>
-                    <Input placeholder="Enter company name" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>TPIN</Label>
-                    <Input placeholder="Tax Payer Identification Number" />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Address</Label>
-                    <Input placeholder="Street address" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>City</Label>
-                    <Input placeholder="City" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Phone</Label>
-                    <Input placeholder="Company phone" />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Email</Label>
-                    <Input type="email" placeholder="Company email" />
-                  </div>
+                  <div className="space-y-2"><Label>Company Name</Label><Input value={companyForm.company_name} onChange={(e) => setCompanyForm({ ...companyForm, company_name: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>TPIN</Label><Input value={companyForm.tpin} onChange={(e) => setCompanyForm({ ...companyForm, tpin: e.target.value })} /></div>
+                  <div className="space-y-2 md:col-span-2"><Label>Address</Label><Input value={companyForm.address} onChange={(e) => setCompanyForm({ ...companyForm, address: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>City</Label><Input value={companyForm.city} onChange={(e) => setCompanyForm({ ...companyForm, city: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Phone</Label><Input value={companyForm.phone} onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })} /></div>
+                  <div className="space-y-2 md:col-span-2"><Label>Email</Label><Input type="email" value={companyForm.email} onChange={(e) => setCompanyForm({ ...companyForm, email: e.target.value })} /></div>
                 </div>
-                <Button className="gap-2">
-                  <Save className="h-4 w-4" />
-                  Save Company Info
+                <Button className="gap-2" onClick={() => updateCompany.mutate(companyForm)} disabled={updateCompany.isPending}>
+                  <Save className="h-4 w-4" />Save Company Info
                 </Button>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle>Bank Details</CardTitle>
-                <CardDescription>Bank account information displayed on invoices.</CardDescription>
+                <CardDescription>Shown on invoices.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Bank Name</Label>
-                    <Input placeholder="e.g., Zanaco, Stanbic, FNB" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Branch</Label>
-                    <Input placeholder="Branch name" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Account Name</Label>
-                    <Input placeholder="Account holder name" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Account Number</Label>
-                    <Input placeholder="Account number" />
-                  </div>
+                  <div className="space-y-2"><Label>Bank Name</Label><Input value={companyForm.bank_name} onChange={(e) => setCompanyForm({ ...companyForm, bank_name: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Branch</Label><Input value={companyForm.bank_branch} onChange={(e) => setCompanyForm({ ...companyForm, bank_branch: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Account Name</Label><Input value={companyForm.account_name} onChange={(e) => setCompanyForm({ ...companyForm, account_name: e.target.value })} /></div>
+                  <div className="space-y-2"><Label>Account Number</Label><Input value={companyForm.account_number} onChange={(e) => setCompanyForm({ ...companyForm, account_number: e.target.value })} /></div>
                 </div>
-                <Button className="gap-2">
-                  <Save className="h-4 w-4" />
-                  Save Bank Details
+                <Button className="gap-2" onClick={() => updateCompany.mutate(companyForm)} disabled={updateCompany.isPending}>
+                  <Save className="h-4 w-4" />Save Bank Details
                 </Button>
               </CardContent>
             </Card>
           </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="roles" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Staff roles</CardTitle>
+                  <CardDescription>Assign ERP access. First registered user is admin automatically.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {(staff || []).map((s) => (
+                    <div key={s.id} className="p-4 rounded-lg border space-y-2">
+                      <p className="font-medium">{s.full_name || s.email}</p>
+                      <p className="text-xs text-muted-foreground">{s.email}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {["admin", "manager", "accountant", "sales", "technician", "loan_officer", "hr"].map((role) => {
+                          const on = s.roles.includes(role as never);
+                          return (
+                            <Button
+                              key={role}
+                              size="sm"
+                              variant={on ? "default" : "outline"}
+                              onClick={() => setRole.mutate({ userId: s.id, role, enabled: !on })}
+                            >
+                              {role}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </AppLayout>

@@ -1,73 +1,52 @@
-# Welcome to your Lovable project
+# SAFEQUEST ERP
 
-## Project info
+Zambia-focused ERP for construction, solar, and lending. Frontend is Vite + React. Backend is **Supabase**: Postgres, Auth, Storage, Row Level Security, RPCs, and Edge Functions.
 
-**URL**: https://lovable.dev/projects/79db30c2-beed-42b8-a9a7-8309e3feb4e5
+## Stack
 
-## How can I edit this code?
+- **Database / Auth / Storage / Realtime**: Supabase Postgres
+- **Business logic**: Postgres RPCs (`record_invoice_payment`, `generate_loan_schedule`, `next_document_number`) plus Edge Functions (`process-payroll`, `record-payment`, `generate-loan-schedule`)
+- **App**: React 18, TanStack Query, shadcn/ui
 
-There are several ways of editing your application.
+The first user who signs up becomes **admin**. Later users get a `sales` role so they can work in the system; an admin can change roles in Settings.
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/79db30c2-beed-42b8-a9a7-8309e3feb4e5) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Local run
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+npm install
+copy .env.example .env
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Put your Supabase URL and anon key in `.env`, then:
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Open http://127.0.0.1:8080
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Point this app at your own Supabase project
 
-**Use GitHub Codespaces**
+1. Create a project at [supabase.com](https://supabase.com).
+2. In the SQL editor (or `supabase db push` with the CLI linked), apply everything under `supabase/migrations/`.
+3. Copy Project URL and anon key into `.env` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`).
+4. Deploy functions:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```sh
+npx supabase login
+npx supabase link --project-ref YOUR_REF
+npx supabase db push
+npx supabase functions deploy process-payroll
+npx supabase functions deploy record-payment
+npx supabase functions deploy generate-loan-schedule
+```
 
-## What technologies are used for this project?
+5. In Auth settings, add your production URL to **Redirect URLs** and **Site URL**. Disable email confirmations for internal staff if you want instant login.
 
-This project is built with:
+## Host the frontend
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Build with `npm run build`. Serve the `dist` folder on Cloudflare Pages, Vercel, or Netlify (SPA rewrites are in `public/_redirects` and `vercel.json`). Keep all data and APIs on Supabase.
 
-## How can I deploy this project?
+## Modules
 
-Simply open [Lovable](https://lovable.dev/projects/79db30c2-beed-42b8-a9a7-8309e3feb4e5) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+CRM, projects, inventory, procurement, invoicing, loans, payroll (PAYE / NAPSA / NHIMA), HR, attendance, assets, compliance, accounting, reports.

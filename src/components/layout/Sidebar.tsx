@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBranches, useCompanySettings } from "@/hooks/useCompanySettings";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -13,6 +14,7 @@ import {
   FileText,
   Landmark,
   Calculator,
+  BookOpen,
   ShieldCheck,
   Truck,
   UserCog,
@@ -43,6 +45,7 @@ const mainNavItems = [
   { icon: FileText, label: "Invoicing", path: "/invoicing" },
   { icon: Landmark, label: "Loans", path: "/loans" },
   { icon: Calculator, label: "Payroll", path: "/payroll" },
+  { icon: BookOpen, label: "Accounting", path: "/accounting" },
   { icon: ShieldCheck, label: "Compliance", path: "/compliance" },
   { icon: Truck, label: "Assets & Fleet", path: "/assets" },
   { icon: UserCog, label: "HR & Employees", path: "/hr" },
@@ -59,6 +62,9 @@ export function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { data: branches } = useBranches();
+  const { data: company } = useCompanySettings();
+  const hq = branches?.[0];
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -160,8 +166,8 @@ export function Sidebar() {
           <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-sidebar-accent/50 hover:bg-sidebar-accent transition-colors">
             <Building2 className="h-4 w-4 text-sidebar-foreground/60" />
             <div className="flex-1 text-left">
-              <p className="text-sm font-medium text-sidebar-foreground">Lusaka HQ</p>
-              <p className="text-xs text-sidebar-foreground/50">Main Branch</p>
+              <p className="text-sm font-medium text-sidebar-foreground">{hq?.name || company?.company_name || "SAFEQUEST"}</p>
+              <p className="text-xs text-sidebar-foreground/50">{hq?.city || "Main Branch"}</p>
             </div>
           </button>
         </div>

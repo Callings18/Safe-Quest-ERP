@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { nextDocumentNumber } from "@/lib/documents";
 
 export function useQuotations() {
   return useQuery({
@@ -52,7 +53,7 @@ export function useCreateQuotation() {
         tax_rate?: number;
       }>;
     }) => {
-      const quotation_number = `QT-${Date.now().toString(36).toUpperCase()}`;
+      const quotation_number = await nextDocumentNumber("QT");
       
       let subtotal = 0;
       const taxRate = quotation.tax_rate || 16;

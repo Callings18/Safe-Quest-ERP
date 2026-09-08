@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { nextDocumentNumber } from "@/lib/documents";
 
 export type AccountType = "asset" | "liability" | "equity" | "income" | "expense";
 
@@ -78,7 +79,7 @@ export function useCreateExpense() {
           account_id: expense.account_id || null,
           supplier_id: expense.supplier_id || null,
           project_id: expense.project_id || null,
-          expense_number: `EXP-${Date.now().toString(36).toUpperCase()}`,
+          expense_number: await nextDocumentNumber("EXP"),
           amount,
           tax_amount: tax,
           total: amount + tax,
@@ -214,7 +215,7 @@ export function useCreateJournalEntry() {
       const { data, error } = await supabase
         .from("journal_entries")
         .insert({
-          entry_number: `JE-${Date.now().toString(36).toUpperCase()}`,
+          entry_number: await nextDocumentNumber("JE"),
           entry_date: entry.entry_date,
           description: entry.description,
           reference: entry.reference || null,
