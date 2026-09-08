@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useLoans, useLoanProducts, useLoanStats, useCreateLoan, useApproveLoan } from "@/hooks/useLoans";
+import { useLoans, useLoanProducts, useLoanStats, useCreateLoan, useApproveLoan, useLoanSchedule, useRecordLoanRepayment } from "@/hooks/useLoans";
 import { Loader2, Plus, Landmark, TrendingUp, AlertTriangle, CheckCircle2, Clock, User, Calendar, DollarSign, Shield, Eye, MoreHorizontal, Wallet } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatZMW } from "@/lib/currency";
@@ -41,6 +41,11 @@ export default function Loans() {
   const { data: stats, isLoading: statsLoading } = useLoanStats();
   const createLoan = useCreateLoan();
   const approveLoan = useApproveLoan();
+  const recordRepayment = useRecordLoanRepayment();
+  const [scheduleLoan, setScheduleLoan] = useState<any>(null);
+  const [repayLoan, setRepayLoan] = useState<any>(null);
+  const [repayAmount, setRepayAmount] = useState("");
+  const { data: schedule } = useLoanSchedule(scheduleLoan?.id);
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewLoan, setViewLoan] = useState<any>(null);
@@ -347,10 +352,10 @@ export default function Loans() {
                                     <DropdownMenuItem onClick={() => setViewLoan(loan)}>
                                       <Eye className="h-4 w-4 mr-2" />View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => { setRepayLoan(loan); setRepayAmount(""); }}>
                                       <Wallet className="h-4 w-4 mr-2" />Record Payment
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setScheduleLoan(loan)}>
                                       <Calendar className="h-4 w-4 mr-2" />View Schedule
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -521,6 +526,47 @@ export default function Loans() {
                 )}
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!scheduleLoan} onOpenChange={() => setScheduleLoan(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader><DialogTitle>Schedule — {scheduleLoan?.loan_number}</DialogTitle></DialogHeader>
+            <div className="max-h-80 overflow-auto text-sm">
+              <table className="w-full">
+                <thead><tr className="border-b"><th className="text-left py-2">#</th><th className="text-left">Due</th><th className="text-right">Amount</th><th className="text-left">Paid</th></tr></thead>
+                <tbody>
+                  {(schedule || []).map((row) => (
+                    <tr key={row.id} className="border-b">
+                      <td className="py-2">{row.installment_number}</td>
+                      <td>{row.due_date}</td>
+                      <td className="text-right">{formatZMW(row.total_due)}</td>
+                      <td>{row.is_paid ? "Yes" : "No"}</td>
+                    </tr>
+                  ))}
+                  {!schedule?.length && <tr><td colSpan={4} className="py-6 text-center text-muted-foreground">No schedule yet. Approve the loan first.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!repayLoan} onOpenChange={() => setRepayLoan(null)}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Record repayment</DialogTitle></DialogHeader>
+            <form
+              className="space-y-3"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                await recordRepayment.mutateAsync({ loan_id: repayLoan.id, amount: Number(repayAmount) || 0 });
+                setRepayLoan(null);
+              }}
+            >
+              <p className="text-sm text-muted-foreground">{repayLoan?.borrower_name} · outstanding {formatZMW(repayLoan?.outstanding_amount || 0)}</p>
+              <Label>Amount (ZMW)</Label>
+              <Input type="number" required min="0.01" step="0.01" value={repayAmount} onChange={(e) => setRepayAmount(e.target.value)} />
+              <Button type="submit" className="w-full" disabled={recordRepayment.isPending}>Save</Button>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
