@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { formatZMW } from "@/lib/currency";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
+import { UpcomingTasks } from "@/components/dashboard/UpcomingTasks";
 
 export default function Index() {
   const { user } = useAuth();
@@ -140,6 +142,11 @@ export default function Index() {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <RecentActivity />
+          <UpcomingTasks />
         </div>
       </div>
     </AppLayout>

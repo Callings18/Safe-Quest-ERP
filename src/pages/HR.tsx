@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useEmployees, useCreateEmployee, useUpdateEmployee, useEmployeeStats } from "@/hooks/useHR";
+import { useEmployees, useCreateEmployee, useUpdateEmployee, useEmployeeStats, useLeaveRequests, useCreateLeaveRequest, useUpdateLeaveStatus } from "@/hooks/useHR";
 import { useAttendance, useClockIn, useClockOut } from "@/hooks/useAttendance";
 import { Loader2, Plus, Users, Building2, DollarSign, UserCheck, Search, Pencil } from "lucide-react";
 import { format } from "date-fns";
@@ -22,6 +22,11 @@ export default function HR() {
   const { data: attendance } = useAttendance();
   const clockIn = useClockIn();
   const clockOut = useClockOut();
+  const { data: leaveRequests } = useLeaveRequests();
+  const createLeave = useCreateLeaveRequest();
+  const updateLeave = useUpdateLeaveStatus();
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({ employee_id: "", leave_type: "annual", start_date: "", end_date: "", days: "1", reason: "" });
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -120,6 +125,80 @@ export default function HR() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold">Leave requests</p>
+              <Button size="sm" variant="outline" onClick={() => setLeaveOpen(true)}>Request leave</Button>
+            </div>
+            <div className="space-y-2">
+              {(leaveRequests || []).slice(0, 8).map((req) => (
+                <div key={req.id} className="flex items-center justify-between text-sm border-b last:border-0 py-2 gap-2">
+                  <span>
+                    {req.employees?.first_name} {req.employees?.last_name} · {req.leave_type} · {req.start_date}–{req.end_date}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{req.status}</Badge>
+                    {req.status === "pending" && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => updateLeave.mutate({ id: req.id, status: "approved" })}>Approve</Button>
+                        <Button size="sm" variant="ghost" onClick={() => updateLeave.mutate({ id: req.id, status: "rejected" })}>Reject</Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {!leaveRequests?.length && <p className="text-sm text-muted-foreground">No leave requests yet.</p>}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Request leave</DialogTitle></DialogHeader>
+            <form
+              className="space-y-3"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                await createLeave.mutateAsync({
+                  employee_id: leaveForm.employee_id,
+                  leave_type: leaveForm.leave_type,
+                  start_date: leaveForm.start_date,
+                  end_date: leaveForm.end_date,
+                  days: Number(leaveForm.days) || 1,
+                  reason: leaveForm.reason || undefined,
+                });
+                setLeaveOpen(false);
+                setLeaveForm({ employee_id: "", leave_type: "annual", start_date: "", end_date: "", days: "1", reason: "" });
+              }}
+            >
+              <Label>Employee</Label>
+              <select
+                required
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={leaveForm.employee_id}
+                onChange={(e) => setLeaveForm({ ...leaveForm, employee_id: e.target.value })}
+              >
+                <option value="">Select</option>
+                {(employees || []).map((emp) => (
+                  <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
+                ))}
+              </select>
+              <Label>Type</Label>
+              <Input value={leaveForm.leave_type} onChange={(e) => setLeaveForm({ ...leaveForm, leave_type: e.target.value })} />
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Start</Label><Input type="date" required value={leaveForm.start_date} onChange={(e) => setLeaveForm({ ...leaveForm, start_date: e.target.value })} /></div>
+                <div><Label>End</Label><Input type="date" required value={leaveForm.end_date} onChange={(e) => setLeaveForm({ ...leaveForm, end_date: e.target.value })} /></div>
+              </div>
+              <Label>Days</Label>
+              <Input type="number" min="1" value={leaveForm.days} onChange={(e) => setLeaveForm({ ...leaveForm, days: e.target.value })} />
+              <Label>Reason</Label>
+              <Input value={leaveForm.reason} onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })} />
+              <Button type="submit" className="w-full" disabled={createLeave.isPending}>Submit</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

@@ -59,3 +59,59 @@ export function useEmployeeStats() {
     },
   });
 }
+
+export function useLeaveRequests() {
+  return useQuery({
+    queryKey: ["leave_requests"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leave_requests")
+        .select("*, employees(first_name, last_name, employee_number)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useCreateLeaveRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      employee_id: string;
+      leave_type: string;
+      start_date: string;
+      end_date: string;
+      days: number;
+      reason?: string;
+    }) => {
+      const { error } = await supabase.from("leave_requests").insert(input);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["leave_requests"] });
+      toast.success("Leave request submitted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useUpdateLeaveStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" | "cancelled" }) => {
+      const { data: user } = await supabase.auth.getUser();
+      const { error } = await supabase.from("leave_requests").update({
+        status,
+        approved_by: user.user?.id ?? null,
+        approved_at: new Date().toISOString(),
+      }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["leave_requests"] });
+      toast.success("Leave updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}

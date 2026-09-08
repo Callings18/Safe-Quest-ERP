@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { nextDocumentNumber } from "@/lib/documents";
 import { differenceInDays } from "date-fns";
 
 export function useContracts() {
@@ -81,7 +82,7 @@ export function useSaveContract() {
       }
       const { data, error } = await supabase
         .from("contracts")
-        .insert({ ...payload, contract_number: `CTR-${Date.now().toString(36).toUpperCase()}` })
+        .insert({ ...payload, contract_number: await nextDocumentNumber("CTR") })
         .select()
         .single();
       if (error) throw error;
