@@ -10,21 +10,21 @@ import {
 } from "@/components/ui/command";
 
 const pages = [
-  { label: "Dashboard", path: "/" },
-  { label: "CRM & Sales", path: "/crm" },
-  { label: "Projects", path: "/projects" },
-  { label: "Inventory", path: "/inventory" },
-  { label: "Procurement", path: "/procurement" },
-  { label: "Invoicing", path: "/invoicing" },
-  { label: "Loans", path: "/loans" },
-  { label: "Payroll", path: "/payroll" },
-  { label: "Accounting", path: "/accounting" },
-  { label: "Compliance", path: "/compliance" },
-  { label: "Assets", path: "/assets" },
-  { label: "HR", path: "/hr" },
-  { label: "Reports", path: "/reports" },
-  { label: "Notifications", path: "/notifications" },
-  { label: "Settings", path: "/settings" },
+  { label: "Dashboard", path: "/", group: "Overview" },
+  { label: "CRM", path: "/crm", group: "Sales" },
+  { label: "Invoicing", path: "/invoicing", group: "Sales" },
+  { label: "Projects", path: "/projects", group: "Operations" },
+  { label: "Inventory", path: "/inventory", group: "Operations" },
+  { label: "Procurement", path: "/procurement", group: "Operations" },
+  { label: "Assets", path: "/assets", group: "Operations" },
+  { label: "Accounting", path: "/accounting", group: "Finance" },
+  { label: "Loans", path: "/loans", group: "Finance" },
+  { label: "Payroll", path: "/payroll", group: "Finance" },
+  { label: "Reports", path: "/reports", group: "Finance" },
+  { label: "HR", path: "/hr", group: "People & risk" },
+  { label: "Compliance", path: "/compliance", group: "People & risk" },
+  { label: "Notifications", path: "/notifications", group: "Workspace" },
+  { label: "Settings", path: "/settings", group: "Workspace" },
 ];
 
 const creates = [
@@ -32,7 +32,7 @@ const creates = [
   { label: "New project", path: "/projects" },
   { label: "New invoice", path: "/invoicing" },
   { label: "New purchase order", path: "/procurement" },
-  { label: "New loan", path: "/loans" },
+  { label: "New contract", path: "/compliance" },
 ];
 
 export function CommandPalette({
@@ -65,13 +65,17 @@ export function CommandPalette({
       <CommandInput placeholder="Search pages and actions…" />
       <CommandList>
         <CommandEmpty>No match.</CommandEmpty>
-        <CommandGroup heading="Go to">
-          {pages.map((p) => (
-            <CommandItem key={p.path} onSelect={() => go(p.path)}>
-              {p.label}
-            </CommandItem>
-          ))}
-        </CommandGroup>
+        {["Overview", "Sales", "Operations", "Finance", "People & risk", "Workspace"].map((group) => (
+          <CommandGroup key={group} heading={group}>
+            {pages
+              .filter((p) => p.group === group)
+              .map((p) => (
+                <CommandItem key={p.path} onSelect={() => go(p.path)}>
+                  {p.label}
+                </CommandItem>
+              ))}
+          </CommandGroup>
+        ))}
         <CommandGroup heading="Create">
           {creates.map((p) => (
             <CommandItem key={p.label} onSelect={() => go(p.path)}>

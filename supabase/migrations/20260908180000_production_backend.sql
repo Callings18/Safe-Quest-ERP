@@ -30,7 +30,7 @@ BEGIN
 END;
 $$;
 
--- Existing users with a profile but no role (bootstrap from Lovable)
+-- Existing users with a profile but no role (first-time bootstrap)
 INSERT INTO public.user_roles (user_id, role)
 SELECT s.id, 'admin'
 FROM (

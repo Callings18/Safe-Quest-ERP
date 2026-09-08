@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Shield, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { z } from "zod";
 
 const emailSchema = z.string().email("Please enter a valid email address");
@@ -90,12 +91,13 @@ export default function Auth() {
       <div className="absolute inset-0 bg-grid-pattern opacity-5" />
       <Card className="w-full max-w-md animate-slide-up relative">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <Shield className="h-7 w-7 text-primary" />
-          </div>
+          <BrandLogo className="mx-auto h-16 w-16" />
           <div>
-            <CardTitle className="text-2xl font-bold">SAFEQUEST</CardTitle>
-            <CardDescription>Enterprise Resource Planning System</CardDescription>
+            <CardTitle className="text-2xl font-bold">SafeQuest</CardTitle>
+            <CardDescription>Sign in to your workspace</CardDescription>
+            <p className="text-xs text-muted-foreground pt-2">
+              New database: use <span className="font-medium text-foreground">Sign Up</span> to create the first admin. Existing Vercel logins from the old project will not work here.
+            </p>
           </div>
         </CardHeader>
         <CardContent>
@@ -139,6 +141,7 @@ export default function Auth() {
                     "Sign In"
                   )}
                 </Button>
+                <p className="text-xs text-center text-muted-foreground">No account on this system yet? Open the Sign Up tab.</p>
               </form>
             </TabsContent>
 
