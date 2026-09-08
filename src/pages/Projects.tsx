@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProjects, useProjectStats, useCreateProject } from "@/hooks/useProjects";
+import { useBOQs, useSaveBOQ, useBOQStats } from "@/hooks/useBOQ";
 import { Loader2, Plus, MapPin, Calendar, Users, DollarSign, MoreHorizontal, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { formatZMW } from "@/lib/currency";
 
@@ -25,10 +26,24 @@ export default function Projects() {
   const { data: projects, isLoading } = useProjects();
   const { data: stats } = useProjectStats();
   const createProject = useCreateProject();
+  const { data: boqs } = useBOQs();
+  const { data: boqStats } = useBOQStats();
+  const saveBOQ = useSaveBOQ();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
     name: "", description: "", project_type: "construction" as const, site_address: "", city: "", budget: "", start_date: "", end_date: "",
+  });
+  const [boqOpen, setBoqOpen] = useState(false);
+  const [boqForm, setBoqForm] = useState({
+    title: "",
+    project_id: "",
+    markup_percent: "10",
+    contingency_percent: "5",
+    description: "",
+    quantity: "1",
+    unit: "each",
+    rate: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,6 +151,7 @@ export default function Projects() {
             <TabsTrigger value="all">All Projects ({projects?.length || 0})</TabsTrigger>
             <TabsTrigger value="construction">Construction ({constructionProjects.length})</TabsTrigger>
             <TabsTrigger value="solar">Solar ({solarProjects.length})</TabsTrigger>
+            <TabsTrigger value="boq">BOQ ({boqs?.length || 0})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
@@ -214,6 +230,83 @@ export default function Projects() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="boq" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                {boqStats?.total || 0} bills · {formatZMW(boqStats?.value || 0)} priced
+              </p>
+              <Dialog open={boqOpen} onOpenChange={setBoqOpen}>
+                <DialogTrigger asChild><Button size="sm" className="gap-2"><Plus className="h-4 w-4" />New BOQ</Button></DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>Bill of quantities</DialogTitle></DialogHeader>
+                  <form
+                    className="space-y-3"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      await saveBOQ.mutateAsync({
+                        title: boqForm.title,
+                        project_id: boqForm.project_id || null,
+                        markup_percent: Number(boqForm.markup_percent) || 0,
+                        contingency_percent: Number(boqForm.contingency_percent) || 0,
+                        items: [{
+                          description: boqForm.description,
+                          unit: boqForm.unit,
+                          quantity: Number(boqForm.quantity) || 0,
+                          rate: Number(boqForm.rate) || 0,
+                        }],
+                      });
+                      setBoqOpen(false);
+                    }}
+                  >
+                    <Label>Title</Label>
+                    <Input required value={boqForm.title} onChange={(e) => setBoqForm({ ...boqForm, title: e.target.value })} />
+                    <Label>Project</Label>
+                    <Select value={boqForm.project_id} onValueChange={(v) => setBoqForm({ ...boqForm, project_id: v })}>
+                      <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
+                      <SelectContent>
+                        {(projects || []).map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Label>Line description</Label>
+                    <Input required value={boqForm.description} onChange={(e) => setBoqForm({ ...boqForm, description: e.target.value })} />
+                    <div className="grid grid-cols-3 gap-2">
+                      <div><Label>Qty</Label><Input type="number" value={boqForm.quantity} onChange={(e) => setBoqForm({ ...boqForm, quantity: e.target.value })} /></div>
+                      <div><Label>Unit</Label><Input value={boqForm.unit} onChange={(e) => setBoqForm({ ...boqForm, unit: e.target.value })} /></div>
+                      <div><Label>Rate (ZMW)</Label><Input type="number" value={boqForm.rate} onChange={(e) => setBoqForm({ ...boqForm, rate: e.target.value })} /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><Label>Markup %</Label><Input type="number" value={boqForm.markup_percent} onChange={(e) => setBoqForm({ ...boqForm, markup_percent: e.target.value })} /></div>
+                      <div><Label>Contingency %</Label><Input type="number" value={boqForm.contingency_percent} onChange={(e) => setBoqForm({ ...boqForm, contingency_percent: e.target.value })} /></div>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={saveBOQ.isPending}>Save BOQ</Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+            <Card>
+              <CardContent className="p-0">
+                {!boqs?.length ? (
+                  <p className="p-8 text-center text-muted-foreground">No BOQs yet.</p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b bg-muted/50"><th className="text-left p-3">Number</th><th className="text-left p-3">Title</th><th className="text-left p-3">Project</th><th className="text-right p-3">Total</th><th className="text-left p-3">Status</th></tr></thead>
+                    <tbody>
+                      {boqs.map((b: any) => (
+                        <tr key={b.id} className="border-b">
+                          <td className="p-3 font-medium">{b.boq_number}</td>
+                          <td className="p-3">{b.title}</td>
+                          <td className="p-3">{b.projects?.name || "—"}</td>
+                          <td className="p-3 text-right">{formatZMW(b.total)}</td>
+                          <td className="p-3"><Badge variant="outline">{b.status}</Badge></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
