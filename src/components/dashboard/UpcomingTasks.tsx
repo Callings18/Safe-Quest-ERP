@@ -26,11 +26,12 @@ export function UpcomingTasks() {
     queryKey: ["dashboard_tasks"],
     queryFn: async () => {
       const today = new Date();
-      const [{ data: invoices }, { data: loans }, { data: docs }, { data: pos }] = await Promise.all([
+      const [{ data: invoices }, { data: loans }, { data: docs }, { data: pos }, { data: leave }] = await Promise.all([
         supabase.from("invoices").select("id, invoice_number, status, due_date").neq("status", "paid").neq("status", "cancelled").neq("status", "draft"),
         supabase.from("loans").select("id, loan_number, status, borrower_name").eq("status", "pending"),
         supabase.from("compliance_documents").select("id, name, expiry_date"),
         supabase.from("purchase_orders").select("id, order_number, status").in("status", ["draft", "approved"]),
+        supabase.from("leave_requests").select("id, leave_type, start_date, status").eq("status", "pending"),
       ]);
 
       const list: Task[] = [];
@@ -80,6 +81,17 @@ export function UpcomingTasks() {
           priority: "low",
           category: "Procurement",
           href: "/procurement",
+        });
+      });
+
+      leave?.forEach((req) => {
+        list.push({
+          id: `leave-${req.id}`,
+          title: `Approve ${req.leave_type} leave`,
+          dueDate: req.start_date,
+          priority: "medium",
+          category: "HR",
+          href: "/hr",
         });
       });
 

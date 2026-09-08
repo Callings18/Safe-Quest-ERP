@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { nextDocumentNumber } from "@/lib/documents";
+import { logActivity } from "@/lib/activity";
 import { differenceInDays } from "date-fns";
 
 export function useContracts() {
@@ -86,11 +87,14 @@ export function useSaveContract() {
         .select()
         .single();
       if (error) throw error;
+      await logActivity("Contract saved", "contract", data.id, payload.title);
       return data.id;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["contracts"] });
       qc.invalidateQueries({ queryKey: ["contract_stats"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_activity"] });
+      qc.invalidateQueries({ queryKey: ["activity_log"] });
       toast.success("Contract saved");
     },
     onError: (e: Error) => toast.error("Failed: " + e.message),

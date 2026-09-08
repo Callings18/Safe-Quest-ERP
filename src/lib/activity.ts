@@ -1,0 +1,21 @@
+import { supabase } from "@/integrations/supabase/client";
+
+export async function logActivity(
+  action: string,
+  entity_type: string,
+  entity_id?: string | null,
+  description?: string | null,
+) {
+  try {
+    const { data: user } = await supabase.auth.getUser();
+    await supabase.from("activity_log").insert({
+      user_id: user.user?.id ?? null,
+      action,
+      entity_type,
+      entity_id: entity_id || null,
+      description: description || null,
+    });
+  } catch {
+    // Activity is best-effort; never block the main save.
+  }
+}

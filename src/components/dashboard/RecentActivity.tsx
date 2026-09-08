@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Info, Landmark, ShieldCheck, Truck } from "lucide-react";
+import { FileText, Info, Landmark, ShieldCheck, Truck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,9 @@ const iconMap: Record<string, typeof FileText> = {
   loan: Landmark,
   compliance: ShieldCheck,
   asset: Truck,
+  lead: FileText,
+  leave: Users,
+  contract: FileText,
 };
 
 export function RecentActivity() {

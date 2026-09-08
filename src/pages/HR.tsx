@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useEmployees, useCreateEmployee, useUpdateEmployee, useEmployeeStats, useLeaveRequests, useCreateLeaveRequest, useUpdateLeaveStatus } from "@/hooks/useHR";
-import { useAttendance, useClockIn, useClockOut } from "@/hooks/useAttendance";
+import { useEmployees, useCreateEmployee, useUpdateEmployee, useEmployeeStats } from "@/hooks/useHR";
+import { useAttendance, useClockIn, useClockOut, useLeaveRequests, useCreateLeaveRequest, useUpdateLeaveStatus } from "@/hooks/useAttendance";
 import { Loader2, Plus, Users, Building2, DollarSign, UserCheck, Search, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { formatZMW } from "@/lib/currency";
@@ -26,7 +26,7 @@ export default function HR() {
   const createLeave = useCreateLeaveRequest();
   const updateLeave = useUpdateLeaveStatus();
   const [leaveOpen, setLeaveOpen] = useState(false);
-  const [leaveForm, setLeaveForm] = useState({ employee_id: "", leave_type: "annual", start_date: "", end_date: "", days: "1", reason: "" });
+  const [leaveForm, setLeaveForm] = useState({ employee_id: "", leave_type: "annual", start_date: "", end_date: "", reason: "" });
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -166,11 +166,10 @@ export default function HR() {
                   leave_type: leaveForm.leave_type,
                   start_date: leaveForm.start_date,
                   end_date: leaveForm.end_date,
-                  days: Number(leaveForm.days) || 1,
                   reason: leaveForm.reason || undefined,
                 });
                 setLeaveOpen(false);
-                setLeaveForm({ employee_id: "", leave_type: "annual", start_date: "", end_date: "", days: "1", reason: "" });
+                setLeaveForm({ employee_id: "", leave_type: "annual", start_date: "", end_date: "", reason: "" });
               }}
             >
               <Label>Employee</Label>
@@ -191,8 +190,6 @@ export default function HR() {
                 <div><Label>Start</Label><Input type="date" required value={leaveForm.start_date} onChange={(e) => setLeaveForm({ ...leaveForm, start_date: e.target.value })} /></div>
                 <div><Label>End</Label><Input type="date" required value={leaveForm.end_date} onChange={(e) => setLeaveForm({ ...leaveForm, end_date: e.target.value })} /></div>
               </div>
-              <Label>Days</Label>
-              <Input type="number" min="1" value={leaveForm.days} onChange={(e) => setLeaveForm({ ...leaveForm, days: e.target.value })} />
               <Label>Reason</Label>
               <Input value={leaveForm.reason} onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })} />
               <Button type="submit" className="w-full" disabled={createLeave.isPending}>Submit</Button>

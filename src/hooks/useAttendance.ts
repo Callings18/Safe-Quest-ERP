@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logActivity } from "@/lib/activity";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -209,10 +210,14 @@ export function useCreateLeaveRequest() {
         .select()
         .single();
       if (error) throw error;
+      await logActivity("Leave requested", "leave", data.id, leave.leave_type);
       return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leave_requests"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_activity"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_tasks"] });
+      qc.invalidateQueries({ queryKey: ["activity_log"] });
       toast.success("Leave request submitted");
     },
     onError: (e: Error) => toast.error("Failed: " + e.message),
@@ -236,6 +241,7 @@ export function useUpdateLeaveStatus() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leave_requests"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_tasks"] });
       toast.success("Leave updated");
     },
     onError: (e: Error) => toast.error("Failed: " + e.message),

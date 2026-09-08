@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logActivity } from "@/lib/activity";
 
 export function useCompanies() {
   return useQuery({
@@ -97,11 +98,14 @@ export function useCreateLead() {
         .single();
 
       if (error) throw error;
+      await logActivity("Lead created", "lead", data.id, data.title);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["lead_stats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard_activity"] });
+      queryClient.invalidateQueries({ queryKey: ["activity_log"] });
       toast.success("Lead created");
     },
     onError: (error) => {
