@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Download, Printer, Loader2 } from "lucide-react";
 import { DocumentPreview } from "./DocumentPreview";
 import { InvoiceTemplate } from "@/hooks/useInvoiceTemplates";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { downloadElementPdf } from "@/lib/pdf";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { resolveDocumentBrand } from "@/lib/branding";
 
 interface DocumentViewDialogProps {
   open: boolean;
@@ -28,6 +29,8 @@ export function DocumentViewDialog({
 }: DocumentViewDialogProps) {
   const printRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+  const { data: company } = useCompanySettings();
+  const branded = resolveDocumentBrand(template, company);
 
   const handlePrint = () => {
     const content = printRef.current;
@@ -42,7 +45,7 @@ export function DocumentViewDialog({
         <head>
           <title>Print Document</title>
           <style>
-            body { margin: 0; padding: 0; font-family: ${template?.font_family || "Inter"}, sans-serif; }
+            body { margin: 0; padding: 0; font-family: ${branded.font_family}, sans-serif; }
             @media print {
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
@@ -65,32 +68,8 @@ export function DocumentViewDialog({
 
     setDownloading(true);
     try {
-      const canvas = await html2canvas(content, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 0;
-
-      pdf.addImage(imgData, "PNG", imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-
       const docNumber = document?.invoice_number || document?.quotation_number || document?.delivery_number || "document";
-      pdf.save(`${docNumber}.pdf`);
+      await downloadElementPdf(content, `${docNumber}.pdf`);
     } catch (error) {
       console.error("PDF generation failed:", error);
     } finally {
@@ -128,7 +107,8 @@ export function DocumentViewDialog({
             type={type}
             document={document}
             items={items}
-            template={template}
+            template={branded}
+            company={company}
             payments={payments}
           />
         </div>

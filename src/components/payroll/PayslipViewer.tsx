@@ -5,10 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Download, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePayslips } from "@/hooks/usePayroll";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import { toast } from "sonner";
 import { formatZMW } from "@/lib/currency";
+import { downloadElementPdf } from "@/lib/pdf";
+import { SAFEQUEST_BRAND } from "@/lib/branding";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 
 interface PayslipViewerProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface PayslipViewerProps {
 
 export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, payDate }: PayslipViewerProps) {
   const { data: payslips, isLoading } = usePayslips(payrollRunId || undefined);
+  const { data: company } = useCompanySettings();
   const [currentIndex, setCurrentIndex] = useState(0);
   const payslipRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
@@ -32,13 +34,10 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
     
     setDownloading(true);
     try {
-      const canvas = await html2canvas(payslipRef.current, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-      pdf.save(`Payslip-${employee?.first_name}-${employee?.last_name}-${payPeriod.replace(/\s/g, "-")}.pdf`);
+      await downloadElementPdf(
+        payslipRef.current,
+        `Payslip-${employee?.first_name}-${employee?.last_name}-${payPeriod.replace(/\s/g, "-")}.pdf`,
+      );
       toast.success("Payslip downloaded");
     } catch (error) {
       toast.error("Failed to download payslip");
@@ -81,14 +80,11 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
         await new Promise(resolve => setTimeout(resolve, 100)); // Wait for render
         
         if (payslipRef.current) {
-          const canvas = await html2canvas(payslipRef.current, { scale: 2, useCORS: true });
-          const imgData = canvas.toDataURL("image/png");
-          const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-          const imgWidth = 210;
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-          pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
           const emp = payslips[i].employees;
-          pdf.save(`Payslip-${emp?.first_name}-${emp?.last_name}-${payPeriod.replace(/\s/g, "-")}.pdf`);
+          await downloadElementPdf(
+            payslipRef.current,
+            `Payslip-${emp?.first_name}-${emp?.last_name}-${payPeriod.replace(/\s/g, "-")}.pdf`,
+          );
         }
       }
       toast.success(`Downloaded ${payslips.length} payslips`);
@@ -154,18 +150,22 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
 
             {/* Payslip Content */}
             <ScrollArea className="h-[60vh]">
-              <div ref={payslipRef} className="bg-white p-6 rounded-lg text-foreground" style={{ minHeight: "500px" }}>
-                {/* Header */}
-                <div className="border-b-2 border-primary pb-4 mb-6">
+              <div ref={payslipRef} className="bg-white p-6 rounded-lg text-black" style={{ minHeight: "500px" }}>
+                <div className="h-1.5 w-full mb-4" style={{ background: `linear-gradient(90deg, ${SAFEQUEST_BRAND.navy} 70%, ${SAFEQUEST_BRAND.gold} 70%)` }} />
+                <div className="border-b-2 pb-4 mb-6" style={{ borderColor: SAFEQUEST_BRAND.navy }}>
                   <div className="flex justify-between items-start">
-                    <div>
-                      <h2 className="text-2xl font-bold text-primary">SAFEQUEST</h2>
-                      <p className="text-sm text-muted-foreground">Construction, Solar & Finance Solutions</p>
+                    <div className="flex gap-3 items-start">
+                      <img src={company?.logo_url || SAFEQUEST_BRAND.logo} alt="SafeQuest" className="h-14 w-14 rounded-full object-cover bg-[#0B1F4A]" />
+                      <div>
+                        <h2 className="text-2xl font-bold" style={{ color: SAFEQUEST_BRAND.navy }}>{company?.company_name || SAFEQUEST_BRAND.name}</h2>
+                        <p className="text-sm" style={{ color: SAFEQUEST_BRAND.gold }}>{SAFEQUEST_BRAND.tagline}</p>
+                        {company?.city && <p className="text-xs text-gray-600">{company.city}</p>}
+                      </div>
                     </div>
                     <div className="text-right">
-                      <h3 className="text-lg font-semibold">PAYSLIP</h3>
-                      <p className="text-sm text-muted-foreground">{payPeriod}</p>
-                      <p className="text-sm text-muted-foreground">Pay Date: {new Date(payDate).toLocaleDateString()}</p>
+                      <h3 className="text-lg font-semibold" style={{ color: SAFEQUEST_BRAND.navy }}>PAYSLIP</h3>
+                      <p className="text-sm text-gray-600">{payPeriod}</p>
+                      <p className="text-sm text-gray-600">Pay Date: {new Date(payDate).toLocaleDateString()}</p>
                     </div>
                   </div>
                 </div>
@@ -283,7 +283,7 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
                 {/* Footer */}
                 <div className="text-center text-xs text-muted-foreground mt-6 pt-4 border-t">
                   <p>This is a computer-generated payslip. No signature required.</p>
-                  <p className="mt-1">Generated by SAFEQUEST Payroll System</p>
+                  <p className="mt-1">Generated by {company?.company_name || SAFEQUEST_BRAND.name} Payroll</p>
                 </div>
               </div>
             </ScrollArea>

@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Loader2 } from "lucide-react";
 import { useCreateQuotation, useUpdateQuotation } from "@/hooks/useQuotations";
-import { useCompanies } from "@/hooks/useCRM";
 import { formatZMW } from "@/lib/currency";
+import { CustomerPicker } from "@/components/crm/CustomerPicker";
 
 interface QuotationFormProps {
   onSuccess: () => void;
@@ -35,7 +35,6 @@ interface LineItem {
 export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
   const createQuotation = useCreateQuotation();
   const updateQuotation = useUpdateQuotation();
-  const { data: companies } = useCompanies();
 
   const [form, setForm] = useState({
     company_id: "",
@@ -116,21 +115,7 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Customer</Label>
-          <Select value={form.company_id} onValueChange={(v) => setForm({ ...form, company_id: v })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select customer" />
-            </SelectTrigger>
-            <SelectContent>
-              {companies?.map((company) => (
-                <SelectItem key={company.id} value={company.id}>
-                  {company.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <CustomerPicker value={form.company_id} onChange={(company_id) => setForm({ ...form, company_id })} />
         <div className="space-y-2">
           <Label>Valid Until</Label>
           <Input

@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProjects, useProjectStats, useCreateProject } from "@/hooks/useProjects";
 import { useBOQs, useSaveBOQ, useBOQStats } from "@/hooks/useBOQ";
+import { useProjectTypes, useCreateProjectType } from "@/hooks/useProjectTypes";
+import { CustomerPicker } from "@/components/crm/CustomerPicker";
 import { Loader2, Plus, MapPin, Calendar, Users, DollarSign, MoreHorizontal, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { formatZMW } from "@/lib/currency";
 
@@ -26,13 +28,16 @@ export default function Projects() {
   const { data: projects, isLoading } = useProjects();
   const { data: stats } = useProjectStats();
   const createProject = useCreateProject();
+  const { data: projectTypes } = useProjectTypes();
+  const createType = useCreateProjectType();
+  const [typeName, setTypeName] = useState("");
   const { data: boqs } = useBOQs();
   const { data: boqStats } = useBOQStats();
   const saveBOQ = useSaveBOQ();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
-    name: "", description: "", project_type: "construction" as const, site_address: "", city: "", budget: "", start_date: "", end_date: "",
+    name: "", description: "", project_type: "construction", company_id: "", site_address: "", city: "", budget: "", start_date: "", end_date: "",
   });
   const [boqOpen, setBoqOpen] = useState(false);
   const [boqForm, setBoqForm] = useState({
@@ -48,9 +53,13 @@ export default function Projects() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createProject.mutateAsync({ ...form, budget: Number(form.budget) || undefined });
+    await createProject.mutateAsync({
+      ...form,
+      budget: Number(form.budget) || undefined,
+      company_id: form.company_id || undefined,
+    });
     setDialogOpen(false);
-    setForm({ name: "", description: "", project_type: "construction", site_address: "", city: "", budget: "", start_date: "", end_date: "" });
+    setForm({ name: "", description: "", project_type: "construction", company_id: "", site_address: "", city: "", budget: "", start_date: "", end_date: "" });
   };
 
   const constructionProjects = projects?.filter(p => p.project_type === "construction") || [];
@@ -80,13 +89,12 @@ export default function Projects() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Project Type</Label>
-                    <Select value={form.project_type} onValueChange={(v: any) => setForm({ ...form, project_type: v })}>
+                    <Select value={form.project_type} onValueChange={(v) => setForm({ ...form, project_type: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="construction">Construction</SelectItem>
-                        <SelectItem value="solar">Solar</SelectItem>
-                        <SelectItem value="maintenance">Maintenance</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        {(projectTypes || []).map((t) => (
+                          <SelectItem key={t.slug} value={t.slug}>{t.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -95,6 +103,7 @@ export default function Projects() {
                     <Input type="number" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} />
                   </div>
                 </div>
+                <CustomerPicker value={form.company_id} onChange={(company_id) => setForm({ ...form, company_id })} />
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Site Address</Label><Input value={form.site_address} onChange={(e) => setForm({ ...form, site_address: e.target.value })} /></div>
                   <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
@@ -152,6 +161,7 @@ export default function Projects() {
             <TabsTrigger value="construction">Construction ({constructionProjects.length})</TabsTrigger>
             <TabsTrigger value="solar">Solar ({solarProjects.length})</TabsTrigger>
             <TabsTrigger value="boq">BOQ ({boqs?.length || 0})</TabsTrigger>
+            <TabsTrigger value="types">Project types</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
@@ -305,6 +315,34 @@ export default function Projects() {
                     </tbody>
                   </table>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="types">
+            <Card>
+              <CardHeader>
+                <CardTitle>Project types</CardTitle>
+                <p className="text-sm text-muted-foreground">These appear on New Project. Construction and Solar stay as filters for existing work.</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <form
+                  className="flex gap-2"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!typeName.trim()) return;
+                    await createType.mutateAsync(typeName);
+                    setTypeName("");
+                  }}
+                >
+                  <Input placeholder="e.g. Electrical, Civil, Security" value={typeName} onChange={(e) => setTypeName(e.target.value)} />
+                  <Button type="submit" disabled={createType.isPending}>{createType.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add type"}</Button>
+                </form>
+                <div className="flex flex-wrap gap-2">
+                  {(projectTypes || []).map((t) => (
+                    <Badge key={t.id} variant="outline">{t.name}</Badge>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

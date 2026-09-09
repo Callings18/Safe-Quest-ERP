@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useLeads, useLeadStats, useCompanies, useContacts, useCreateLead, useCreateCompany, useCreateContact, useUpdateLeadStatus } from "@/hooks/useCRM";
+import { useLeads, useLeadStats, useCompanies, useContacts, useCreateLead, useCreateContact, useUpdateLeadStatus } from "@/hooks/useCRM";
 import { Loader2, Search, Plus, Filter, MoreHorizontal, Mail, Building2, User } from "lucide-react";
 import { formatZMW } from "@/lib/currency";
+import { CustomerFormDialog } from "@/components/crm/CustomerFormDialog";
 
 const stageColors: Record<string, string> = {
   new: "bg-muted text-muted-foreground",
@@ -28,17 +29,16 @@ export default function CRM() {
   const { data: companies, isLoading: companiesLoading } = useCompanies();
   const { data: contacts, isLoading: contactsLoading } = useContacts();
   const createLead = useCreateLead();
-  const createCompany = useCreateCompany();
   const createContact = useCreateContact();
   const updateLeadStatus = useUpdateLeadStatus();
   const [searchTerm, setSearchTerm] = useState("");
   const [contactDialog, setContactDialog] = useState(false);
   const [contactForm, setContactForm] = useState({ first_name: "", last_name: "", email: "", phone: "", company_id: "" });
 
+  const [crmTab, setCrmTab] = useState("customers");
   const [leadDialog, setLeadDialog] = useState(false);
   const [companyDialog, setCompanyDialog] = useState(false);
   const [leadForm, setLeadForm] = useState({ title: "", description: "", value: "", source: "", company_id: "" });
-  const [companyForm, setCompanyForm] = useState({ name: "", industry: "", phone: "", email: "", city: "" });
 
   const handleCreateLead = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,13 +49,6 @@ export default function CRM() {
     });
     setLeadDialog(false);
     setLeadForm({ title: "", description: "", value: "", source: "", company_id: "" });
-  };
-
-  const handleCreateCompany = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await createCompany.mutateAsync(companyForm);
-    setCompanyDialog(false);
-    setCompanyForm({ name: "", industry: "", phone: "", email: "", city: "" });
   };
 
   const q = searchTerm.toLowerCase();
@@ -77,8 +70,12 @@ export default function CRM() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">CRM & Sales</h1>
-            <p className="text-muted-foreground">Manage leads, opportunities, and customer relationships</p>
+            <p className="text-muted-foreground">Add customers here, then create leads, quotes, and invoices</p>
           </div>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => { setCrmTab("customers"); setCompanyDialog(true); }}>
+              <Plus className="h-4 w-4" />Add Customer
+            </Button>
           <Dialog open={leadDialog} onOpenChange={setLeadDialog}>
             <DialogTrigger asChild>
               <Button className="gap-2"><Plus className="h-4 w-4" />Add Lead</Button>
@@ -105,7 +102,7 @@ export default function CRM() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Company</Label>
+                      <Label>Customer</Label>
                   <select
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     value={leadForm.company_id}
@@ -123,6 +120,7 @@ export default function CRM() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-5">
@@ -140,12 +138,12 @@ export default function CRM() {
           ))}
         </div>
 
-        <Tabs defaultValue="leads" className="space-y-4">
+        <Tabs value={crmTab} onValueChange={setCrmTab} className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <TabsList>
+              <TabsTrigger value="customers">Customers ({companies?.length || 0})</TabsTrigger>
               <TabsTrigger value="leads">Leads ({leads?.length || 0})</TabsTrigger>
               <TabsTrigger value="contacts">Contacts ({contacts?.length || 0})</TabsTrigger>
-              <TabsTrigger value="companies">Companies ({companies?.length || 0})</TabsTrigger>
             </TabsList>
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -240,7 +238,7 @@ export default function CRM() {
                     <div className="space-y-2"><Label>Email</Label><Input type="email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} /></div>
                     <div className="space-y-2"><Label>Phone</Label><Input value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })} /></div>
                     <div className="space-y-2">
-                      <Label>Company</Label>
+                      <Label>Customer</Label>
                       <select
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         value={contactForm.company_id}
@@ -291,41 +289,19 @@ export default function CRM() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="companies">
-            <div className="flex justify-end mb-4">
-              <Dialog open={companyDialog} onOpenChange={setCompanyDialog}>
-                <DialogTrigger asChild><Button variant="outline" className="gap-2"><Plus className="h-4 w-4" />Add Company</Button></DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle>Add Company</DialogTitle></DialogHeader>
-                  <form onSubmit={handleCreateCompany} className="space-y-4">
-                    <div className="space-y-2"><Label>Company Name</Label><Input value={companyForm.name} onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })} required /></div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2"><Label>Industry</Label><Input value={companyForm.industry} onChange={(e) => setCompanyForm({ ...companyForm, industry: e.target.value })} /></div>
-                      <div className="space-y-2"><Label>City</Label><Input value={companyForm.city} onChange={(e) => setCompanyForm({ ...companyForm, city: e.target.value })} /></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2"><Label>Phone</Label><Input value={companyForm.phone} onChange={(e) => setCompanyForm({ ...companyForm, phone: e.target.value })} /></div>
-                      <div className="space-y-2"><Label>Email</Label><Input value={companyForm.email} onChange={(e) => setCompanyForm({ ...companyForm, email: e.target.value })} /></div>
-                    </div>
-                    <Button type="submit" className="w-full" disabled={createCompany.isPending}>
-                      {createCompany.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Add Company
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
+          <TabsContent value="customers">
             <Card>
               <CardContent className="p-0">
                 {companiesLoading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
                 ) : !filteredCompanies?.length ? (
-                  <div className="text-center py-12 text-muted-foreground">No companies yet.</div>
+                  <div className="text-center py-12 text-muted-foreground">No customers yet. Use Add Customer to create one.</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-border bg-muted/50">
-                          <th className="text-left p-4 font-medium text-muted-foreground">Company</th>
+                          <th className="text-left p-4 font-medium text-muted-foreground">Customer</th>
                           <th className="text-left p-4 font-medium text-muted-foreground">Industry</th>
                           <th className="text-left p-4 font-medium text-muted-foreground">City</th>
                           <th className="text-left p-4 font-medium text-muted-foreground">Contact</th>
@@ -348,6 +324,7 @@ export default function CRM() {
             </Card>
           </TabsContent>
         </Tabs>
+        <CustomerFormDialog open={companyDialog} onOpenChange={setCompanyDialog} />
       </div>
     </AppLayout>
   );

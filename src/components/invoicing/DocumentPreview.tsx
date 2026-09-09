@@ -1,38 +1,20 @@
 import { forwardRef } from "react";
 import { InvoiceTemplate } from "@/hooks/useInvoiceTemplates";
 import { formatZMW } from "@/lib/currency";
+import { resolveDocumentBrand, SAFEQUEST_BRAND, type CompanyBrand } from "@/lib/branding";
 
 interface DocumentPreviewProps {
   type: "invoice" | "quotation" | "delivery_note" | "receipt";
   document: any;
   items: any[];
   template?: InvoiceTemplate | null;
+  company?: CompanyBrand;
   payments?: any[];
 }
 
 export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
-  ({ type, document, items, template, payments }, ref) => {
-    const defaultTemplate: InvoiceTemplate = {
-      id: "default",
-      name: "Default",
-      is_default: true,
-      primary_color: "#0066cc",
-      secondary_color: "#f8fafc",
-      font_family: "Inter",
-      show_logo: true,
-      show_bank_details: true,
-      company_name: "Your Company Name",
-      company_address: "123 Business Street, City",
-      company_phone: "+260 XXX XXX XXX",
-      company_email: "info@company.com",
-      company_tpin: "XXXXXXXXXX",
-      bank_name: "Bank Name",
-      bank_account: "Account Number",
-      bank_branch: "Branch Name",
-      footer_text: "Thank you for your business!",
-    };
-
-    const t = template || defaultTemplate;
+  ({ type, document, items, template, company, payments }, ref) => {
+    const t = resolveDocumentBrand(template, company);
 
     const typeLabels = {
       invoice: "INVOICE",
@@ -54,15 +36,16 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
         style={{ fontFamily: t.font_family, minHeight: "297mm" }}
       >
         {/* Header */}
+        <div className="h-1.5 w-full mb-6" style={{ background: `linear-gradient(90deg, ${SAFEQUEST_BRAND.navy} 70%, ${SAFEQUEST_BRAND.gold} 70%)` }} />
         <div className="flex justify-between items-start mb-8 pb-4 border-b-2" style={{ borderColor: t.primary_color }}>
           <div>
-            {t.show_logo && t.logo_url ? (
-              <img src={t.logo_url} alt="Logo" className="h-16 mb-2" />
-            ) : (
-              <h1 className="text-2xl font-bold" style={{ color: t.primary_color }}>
-                {t.company_name}
-              </h1>
+            {t.show_logo && (
+              <img src={t.logo_url || SAFEQUEST_BRAND.logo} alt={t.company_name || "SafeQuest"} className="h-16 w-16 rounded-full object-cover mb-2 bg-[#0B1F4A]" />
             )}
+            <h1 className="text-2xl font-bold tracking-wide" style={{ color: t.primary_color }}>
+              {t.company_name}
+            </h1>
+            <p className="text-xs font-medium mb-1" style={{ color: SAFEQUEST_BRAND.gold }}>{SAFEQUEST_BRAND.tagline}</p>
             <p className="text-sm text-gray-600">{t.company_address}</p>
             <p className="text-sm text-gray-600">{t.company_phone}</p>
             <p className="text-sm text-gray-600">{t.company_email}</p>
@@ -229,7 +212,8 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
         )}
 
         {/* Footer */}
-        <div className="mt-auto pt-8 text-center border-t text-sm text-gray-500">
+        <div className="mt-auto pt-6 text-center border-t text-sm text-gray-500">
+          <div className="h-1 w-24 mx-auto mb-3" style={{ backgroundColor: SAFEQUEST_BRAND.gold }} />
           {t.footer_text}
         </div>
       </div>

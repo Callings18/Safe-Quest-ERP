@@ -28,6 +28,7 @@ const pages = [
 ];
 
 const creates = [
+  { label: "New customer", path: "/crm" },
   { label: "New lead", path: "/crm" },
   { label: "New project", path: "/projects" },
   { label: "New invoice", path: "/invoicing" },

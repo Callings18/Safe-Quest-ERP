@@ -138,7 +138,7 @@ export function useCreateCompany() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });
-      toast.success("Company created");
+      toast.success("Customer added");
     },
     onError: (error) => {
       toast.error("Failed to create company: " + error.message);
