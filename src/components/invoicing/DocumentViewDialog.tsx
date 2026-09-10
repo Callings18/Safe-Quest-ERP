@@ -31,6 +31,12 @@ export function DocumentViewDialog({
   const [downloading, setDownloading] = useState(false);
   const { data: company } = useCompanySettings();
   const branded = resolveDocumentBrand(template, company);
+  const typeLabels = {
+    invoice: "Invoice",
+    quotation: "Quotation",
+    delivery_note: "Delivery Note",
+    receipt: "Receipt",
+  };
 
   const handlePrint = () => {
     const content = printRef.current;
@@ -43,15 +49,24 @@ export function DocumentViewDialog({
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Print Document</title>
+          <title>${typeLabels[type]} ${document?.invoice_number || document?.quotation_number || ""}</title>
           <style>
-            body { margin: 0; padding: 0; font-family: ${branded.font_family}, sans-serif; }
+            @page { size: A4; margin: 0; }
+            body { margin: 0; padding: 0; font-family: Inter, Arial, sans-serif; }
+            .letterhead-page {
+              width: 210mm;
+              min-height: 297mm;
+              background-image: url("${window.location.origin}/letterhead.png");
+              background-size: 210mm 297mm;
+              background-repeat: repeat-y;
+              box-shadow: none !important;
+            }
             @media print {
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
           </style>
         </head>
-        <body>${content.innerHTML}</body>
+        <body>${content.outerHTML}</body>
       </html>
     `);
     printWindow.document.close();
@@ -75,13 +90,6 @@ export function DocumentViewDialog({
     } finally {
       setDownloading(false);
     }
-  };
-
-  const typeLabels = {
-    invoice: "Invoice",
-    quotation: "Quotation",
-    delivery_note: "Delivery Note",
-    receipt: "Receipt",
   };
 
   return (

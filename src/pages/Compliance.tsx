@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,8 @@ import { useContracts, useSaveContract } from "@/hooks/useContracts";
 import { Loader2, Plus, Search, ShieldCheck, AlertTriangle, Clock, CheckCircle2, Calendar, FileText } from "lucide-react";
 import { differenceInDays } from "date-fns";
 import { formatZMW } from "@/lib/currency";
+import { ContractPreview } from "@/components/documents/ContractPreview";
+import { downloadElementPdf } from "@/lib/pdf";
 
 const statusConfig: Record<string, { color: string; icon: any }> = {
   valid: { color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
@@ -37,6 +39,8 @@ export default function Compliance() {
     expiry_date: string | null;
     issue_date: string | null;
   } | null>(null);
+  const [viewContract, setViewContract] = useState<any>(null);
+  const contractPrintRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [form, setForm] = useState({ name: "", document_type: "", description: "", issue_date: "", expiry_date: "", reminder_days: "30" });
@@ -302,9 +306,10 @@ export default function Compliance() {
                       <h4 className="font-semibold truncate">{c.title}</h4>
                       <p className="text-sm text-muted-foreground">{c.contract_number} · {c.contract_type} · {c.status}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right space-y-2">
                       <p className="font-semibold">{formatZMW(c.value)}</p>
                       {c.end_date && <p className="text-xs text-muted-foreground">Ends {new Date(c.end_date).toLocaleDateString()}</p>}
+                      <Button size="sm" variant="outline" onClick={() => setViewContract(c)}>PDF</Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -313,6 +318,27 @@ export default function Compliance() {
           </TabsContent>
         </Tabs>
 
+        <Dialog open={!!viewContract} onOpenChange={(open) => !open && setViewContract(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <DialogTitle>Contract</DialogTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (contractPrintRef.current && viewContract) {
+                      downloadElementPdf(contractPrintRef.current, `${viewContract.contract_number || "contract"}.pdf`);
+                    }
+                  }}
+                >
+                  Download PDF
+                </Button>
+              </div>
+            </DialogHeader>
+            {viewContract && <ContractPreview ref={contractPrintRef} contract={viewContract} />}
+          </DialogContent>
+        </Dialog>
         <Dialog open={!!viewDoc} onOpenChange={(open) => !open && setViewDoc(null)}>
           <DialogContent>
             <DialogHeader><DialogTitle>{viewDoc?.name}</DialogTitle></DialogHeader>

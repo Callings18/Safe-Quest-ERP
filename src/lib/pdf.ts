@@ -1,7 +1,18 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { SAFEQUEST_BRAND } from "@/lib/branding";
+
+async function waitForLetterhead() {
+  await new Promise<void>((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+    img.src = SAFEQUEST_BRAND.letterhead;
+  });
+}
 
 export async function downloadElementPdf(element: HTMLElement, filename: string) {
+  await waitForLetterhead();
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,

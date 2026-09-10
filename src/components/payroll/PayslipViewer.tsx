@@ -1,15 +1,13 @@
 import { useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Download, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePayslips } from "@/hooks/usePayroll";
 import { toast } from "sonner";
 import { formatZMW } from "@/lib/currency";
 import { downloadElementPdf } from "@/lib/pdf";
-import { SAFEQUEST_BRAND } from "@/lib/branding";
-import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { LetterheadPage } from "@/components/documents/LetterheadPage";
 
 interface PayslipViewerProps {
   open: boolean;
@@ -21,7 +19,6 @@ interface PayslipViewerProps {
 
 export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, payDate }: PayslipViewerProps) {
   const { data: payslips, isLoading } = usePayslips(payrollRunId || undefined);
-  const { data: company } = useCompanySettings();
   const [currentIndex, setCurrentIndex] = useState(0);
   const payslipRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
@@ -57,13 +54,19 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
         <head>
           <title>Payslip - ${employee?.first_name} ${employee?.last_name}</title>
           <style>
-            body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; }
-            .payslip { max-width: 800px; margin: 0 auto; }
+            @page { size: A4; margin: 0; }
+            body { margin: 0; font-family: Inter, Arial, sans-serif; }
+            .letterhead-page {
+              width: 210mm;
+              min-height: 297mm;
+              background-image: url("${window.location.origin}/letterhead.png");
+              background-size: 210mm 297mm;
+              background-repeat: repeat-y;
+            }
+            @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
           </style>
         </head>
-        <body>
-          <div class="payslip">${payslipRef.current.innerHTML}</div>
-        </body>
+        <body>${payslipRef.current.outerHTML}</body>
       </html>
     `);
     printWindow.document.close();
@@ -150,55 +153,37 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
 
             {/* Payslip Content */}
             <ScrollArea className="h-[60vh]">
-              <div ref={payslipRef} className="bg-white p-6 rounded-lg text-black" style={{ minHeight: "500px" }}>
-                <div className="h-1.5 w-full mb-4" style={{ background: `linear-gradient(90deg, ${SAFEQUEST_BRAND.navy} 70%, ${SAFEQUEST_BRAND.gold} 70%)` }} />
-                <div className="border-b-2 pb-4 mb-6" style={{ borderColor: SAFEQUEST_BRAND.navy }}>
-                  <div className="flex justify-between items-start">
-                    <div className="flex gap-3 items-start">
-                      <img src={company?.logo_url || SAFEQUEST_BRAND.logo} alt="SafeQuest" className="h-14 w-14 rounded-full object-cover bg-[#0B1F4A]" />
-                      <div>
-                        <h2 className="text-2xl font-bold" style={{ color: SAFEQUEST_BRAND.navy }}>{company?.company_name || SAFEQUEST_BRAND.name}</h2>
-                        <p className="text-sm" style={{ color: SAFEQUEST_BRAND.gold }}>{SAFEQUEST_BRAND.tagline}</p>
-                        {company?.city && <p className="text-xs text-gray-600">{company.city}</p>}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <h3 className="text-lg font-semibold" style={{ color: SAFEQUEST_BRAND.navy }}>PAYSLIP</h3>
-                      <p className="text-sm text-gray-600">{payPeriod}</p>
-                      <p className="text-sm text-gray-600">Pay Date: {new Date(payDate).toLocaleDateString()}</p>
-                    </div>
+              <LetterheadPage ref={payslipRef}>
+                <div className="flex justify-between items-start mb-5">
+                  <h3 className="text-2xl font-bold" style={{ color: "#0B1F4A" }}>PAYSLIP</h3>
+                  <div className="text-right text-sm">
+                    <p>{payPeriod}</p>
+                    <p>Pay date: {new Date(payDate).toLocaleDateString()}</p>
                   </div>
                 </div>
 
-                {/* Employee Details */}
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase">Employee Details</h4>
-                    <div className="space-y-1">
-                      <p className="font-medium text-lg">{employee?.first_name} {employee?.last_name}</p>
-                      <p className="text-sm">Employee #: {employee?.employee_number}</p>
-                      <p className="text-sm">Job Title: {employee?.job_title || "N/A"}</p>
-                      <p className="text-sm">Department: {employee?.department || "N/A"}</p>
-                    </div>
+                <div className="grid grid-cols-2 gap-6 mb-6 text-sm">
+                  <div className="space-y-1">
+                    <h4 className="font-semibold uppercase text-xs">Employee details</h4>
+                    <p className="font-medium text-lg">{employee?.first_name} {employee?.last_name}</p>
+                    <p>Employee #: {employee?.employee_number}</p>
+                    <p>Job title: {employee?.job_title || "N/A"}</p>
+                    <p>Department: {employee?.department || "N/A"}</p>
                   </div>
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase">Statutory Numbers</h4>
-                    <div className="space-y-1 text-sm">
-                      <p>TPIN: {employee?.tax_pin || "N/A"}</p>
-                      <p>NAPSA #: {employee?.napsa_number || "N/A"}</p>
-                      <p>NHIMA #: {employee?.nhima_number || "N/A"}</p>
-                    </div>
+                  <div className="space-y-1">
+                    <h4 className="font-semibold uppercase text-xs">Statutory numbers</h4>
+                    <p>TPIN: {employee?.tax_pin || "N/A"}</p>
+                    <p>NAPSA #: {employee?.napsa_number || "N/A"}</p>
+                    <p>NHIMA #: {employee?.nhima_number || "N/A"}</p>
                   </div>
                 </div>
 
-                {/* Earnings & Deductions */}
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                  {/* Earnings */}
+                <div className="grid grid-cols-2 gap-6 mb-6 text-sm">
                   <div>
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase mb-3 pb-2 border-b">Earnings</h4>
+                    <h4 className="font-semibold uppercase text-xs mb-3 pb-2 border-b">Earnings</h4>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span>Basic Salary</span>
+                        <span>Basic salary</span>
                         <span className="font-medium">{formatZMW(currentPayslip?.basic_salary || 0)}</span>
                       </div>
                       {Number(currentPayslip?.allowances || 0) > 0 && (
@@ -214,36 +199,34 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
                         </div>
                       )}
                       <div className="flex justify-between pt-2 border-t font-semibold">
-                        <span>Gross Pay</span>
+                        <span>Gross pay</span>
                         <span>{formatZMW(currentPayslip?.gross_pay || 0)}</span>
                       </div>
                     </div>
                   </div>
-
-                  {/* Deductions */}
                   <div>
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase mb-3 pb-2 border-b">Deductions</h4>
+                    <h4 className="font-semibold uppercase text-xs mb-3 pb-2 border-b">Deductions</h4>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-destructive">
-                        <span>PAYE (Income Tax)</span>
+                      <div className="flex justify-between">
+                        <span>PAYE (Income tax)</span>
                         <span>-{formatZMW(currentPayslip?.paye || 0)}</span>
                       </div>
-                      <div className="flex justify-between text-destructive">
+                      <div className="flex justify-between">
                         <span>NAPSA (Employee 5%)</span>
                         <span>-{formatZMW(currentPayslip?.napsa_employee || 0)}</span>
                       </div>
-                      <div className="flex justify-between text-destructive">
+                      <div className="flex justify-between">
                         <span>NHIMA (1%)</span>
                         <span>-{formatZMW(currentPayslip?.nhima || 0)}</span>
                       </div>
                       {Number(currentPayslip?.other_deductions || 0) > 0 && (
-                        <div className="flex justify-between text-destructive">
-                          <span>Other Deductions</span>
+                        <div className="flex justify-between">
+                          <span>Other deductions</span>
                           <span>-{formatZMW(currentPayslip?.other_deductions || 0)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between pt-2 border-t font-semibold text-destructive">
-                        <span>Total Deductions</span>
+                      <div className="flex justify-between pt-2 border-t font-semibold">
+                        <span>Total deductions</span>
                         <span>{formatZMW(-(
                           Number(currentPayslip?.paye || 0) +
                           Number(currentPayslip?.napsa_employee || 0) +
@@ -255,37 +238,27 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
                   </div>
                 </div>
 
-                {/* Net Pay */}
-                <div className="bg-success/10 border border-success/20 rounded-lg p-4 mb-6">
+                <div className="border rounded-lg p-4 mb-6" style={{ borderColor: "#0B1F4A" }}>
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold">Net Pay</span>
-                    <span className="text-2xl font-bold text-success">{formatZMW(currentPayslip?.net_pay || 0)}</span>
+                    <span className="text-lg font-semibold">Net pay</span>
+                    <span className="text-2xl font-bold" style={{ color: "#0B1F4A" }}>{formatZMW(currentPayslip?.net_pay || 0)}</span>
                   </div>
                 </div>
 
-                {/* Bank Details */}
                 {employee?.bank_name && (
-                  <div className="bg-muted/50 rounded-lg p-4 mb-6">
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase mb-2">Payment Details</h4>
-                    <p className="text-sm">Bank: {employee.bank_name}</p>
-                    <p className="text-sm">Account: {employee.bank_account || "N/A"}</p>
+                  <div className="mb-6 text-sm">
+                    <h4 className="font-semibold uppercase text-xs mb-2">Payment details</h4>
+                    <p>Bank: {employee.bank_name}</p>
+                    <p>Account: {employee.bank_account || "N/A"}</p>
                   </div>
                 )}
 
-                {/* Employer Contributions */}
-                <div className="text-sm text-muted-foreground border-t pt-4">
-                  <p className="font-medium mb-2">Employer Contributions (Not deducted from salary):</p>
-                  <div className="flex gap-6">
-                    <span>NAPSA (Employer 5%): {formatZMW(currentPayslip?.napsa_employer || 0)}</span>
-                  </div>
+                <div className="text-sm border-t pt-4">
+                  <p className="font-medium mb-2">Employer contributions (not deducted from salary):</p>
+                  <span>NAPSA (Employer 5%): {formatZMW(currentPayslip?.napsa_employer || 0)}</span>
                 </div>
-
-                {/* Footer */}
-                <div className="text-center text-xs text-muted-foreground mt-6 pt-4 border-t">
-                  <p>This is a computer-generated payslip. No signature required.</p>
-                  <p className="mt-1">Generated by {company?.company_name || SAFEQUEST_BRAND.name} Payroll</p>
-                </div>
-              </div>
+                <p className="text-center text-xs text-gray-500 mt-6">This is a computer-generated payslip. No signature required.</p>
+              </LetterheadPage>
             </ScrollArea>
           </>
         )}
