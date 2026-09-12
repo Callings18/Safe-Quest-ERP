@@ -23,6 +23,7 @@ import Reports from "./pages/Reports";
 import Notifications from "./pages/Notifications";
 import Accounting from "./pages/Accounting";
 import NotFound from "./pages/NotFound";
+import DocumentPreviewPage from "./pages/DocumentPreviewPage";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/document-preview" element={<DocumentPreviewPage />} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/crm" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
             <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
