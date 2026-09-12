@@ -45,28 +45,38 @@ export function resolveDocumentBrand(
   template?: InvoiceTemplate | null,
   company?: CompanyBrand,
 ): InvoiceTemplate {
-  const address = [company?.address || SAFEQUEST_BRAND.address, company?.city || SAFEQUEST_BRAND.city]
-    .filter(Boolean)
-    .join(", ");
+  const address =
+    template?.company_address ||
+    [company?.address || SAFEQUEST_BRAND.address, company?.city || SAFEQUEST_BRAND.city].filter(Boolean).join(", ");
+  const headerMode = template?.header_mode || "letterhead";
   return {
     id: template?.id || "safequest-brand",
     name: template?.name || "SafeQuest letterhead",
     is_default: template?.is_default ?? true,
-    show_logo: false,
+    show_logo: template?.show_logo ?? headerMode === "logo",
     show_bank_details: template?.show_bank_details ?? true,
     font_family: template?.font_family || SAFEQUEST_BRAND.font,
-    primary_color: SAFEQUEST_BRAND.navy,
-    secondary_color: SAFEQUEST_BRAND.paper,
-    logo_url: SAFEQUEST_BRAND.letterhead,
-    company_name: company?.company_name || SAFEQUEST_BRAND.name,
+    primary_color: template?.primary_color || SAFEQUEST_BRAND.navy,
+    secondary_color: template?.secondary_color || SAFEQUEST_BRAND.paper,
+    logo_url: template?.logo_url || company?.logo_url || SAFEQUEST_BRAND.logo,
+    company_name: template?.company_name || company?.company_name || SAFEQUEST_BRAND.name,
     company_address: address,
-    company_phone: company?.phone || SAFEQUEST_BRAND.phone,
-    company_email: company?.email || SAFEQUEST_BRAND.email,
+    company_phone: template?.company_phone || company?.phone || SAFEQUEST_BRAND.phone,
+    company_email: template?.company_email || company?.email || SAFEQUEST_BRAND.email,
     company_tpin: template?.company_tpin || company?.tpin || "",
-    bank_name: company?.bank_name || SAFEQUEST_BRAND.bankName,
-    bank_account: company?.account_number || SAFEQUEST_BRAND.accountNumber,
-    bank_branch: company?.bank_branch || SAFEQUEST_BRAND.bankBranch,
-    footer_text: "",
+    bank_name: template?.bank_name || company?.bank_name || SAFEQUEST_BRAND.bankName,
+    bank_account: template?.bank_account || company?.account_number || SAFEQUEST_BRAND.accountNumber,
+    bank_branch: template?.bank_branch || company?.bank_branch || SAFEQUEST_BRAND.bankBranch,
+    footer_text: template?.footer_text || "",
+    letterhead_url: template?.letterhead_url || SAFEQUEST_BRAND.letterhead,
+    header_mode: headerMode,
+    logo_width: template?.logo_width ?? 72,
+    account_name: template?.account_name || company?.account_name || SAFEQUEST_BRAND.accountName,
+    mobile_money: template?.mobile_money || SAFEQUEST_BRAND.mobileMoney,
+    mobile_money_name: template?.mobile_money_name || SAFEQUEST_BRAND.mobileMoneyName,
+    table_style: template?.table_style || "underline",
+    margin_top: template?.margin_top,
+    margin_bottom: template?.margin_bottom,
   };
 }
 

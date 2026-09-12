@@ -12,7 +12,7 @@ import { useInvoices, useInvoiceStats } from "@/hooks/useInvoices";
 import { useQuotations, useConvertQuotationToInvoice, useUpdateQuotationStatus } from "@/hooks/useQuotations";
 import { useDeliveryNotes, useCreateDeliveryNoteFromInvoice, useUpdateDeliveryNoteStatus } from "@/hooks/useDeliveryNotes";
 import { usePayments } from "@/hooks/usePayments";
-import { useInvoiceTemplates, useDefaultTemplate } from "@/hooks/useInvoiceTemplates";
+import { useInvoiceTemplates, useDefaultTemplate, useDeleteTemplate, InvoiceTemplate } from "@/hooks/useInvoiceTemplates";
 import { QuotationForm } from "@/components/invoicing/QuotationForm";
 import { InvoiceForm } from "@/components/invoicing/InvoiceForm";
 import { PaymentForm } from "@/components/invoicing/PaymentForm";
@@ -64,6 +64,8 @@ export default function Invoicing() {
   const [quotationDialogOpen, setQuotationDialogOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<InvoiceTemplate | null>(null);
+  const deleteTemplate = useDeleteTemplate();
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [editQuotation, setEditQuotation] = useState<any>(null);
@@ -248,12 +250,28 @@ export default function Invoicing() {
           <TabsContent value="templates">
             <Card><CardContent className="p-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold">Invoice Templates</h3>
-                <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}><DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Template</Button></DialogTrigger><DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Create Template</DialogTitle></DialogHeader><TemplateForm onSuccess={() => setTemplateDialogOpen(false)} /></DialogContent></Dialog>
+                <div>
+                  <h3 className="font-semibold">Document styles</h3>
+                  <p className="text-sm text-muted-foreground">Edit letterhead, logo, colors, and font for every printed document.</p>
+                </div>
+                <Dialog open={templateDialogOpen} onOpenChange={(open) => { setTemplateDialogOpen(open); if (!open) setEditingTemplate(null); }}>
+                  <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> New style</Button></DialogTrigger>
+                  <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto"><DialogHeader><DialogTitle>{editingTemplate ? "Edit document style" : "Create document style"}</DialogTitle></DialogHeader><TemplateForm key={editingTemplate?.id || "new"} template={editingTemplate || undefined} onSuccess={() => { setTemplateDialogOpen(false); setEditingTemplate(null); }} /></DialogContent>
+                </Dialog>
               </div>
-              {!templates?.length ? <div className="text-center py-12 text-muted-foreground">No templates yet. Create one to customize your invoices.</div> : (
-                <div className="grid gap-4 md:grid-cols-3">{templates.map((t: any) => (
-                  <Card key={t.id}><CardContent className="p-4"><div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded" style={{ backgroundColor: t.primary_color }} /><div><p className="font-medium">{t.name}</p>{t.is_default && <Badge variant="outline" className="text-xs">Default</Badge>}</div></div><p className="text-sm text-muted-foreground">{t.company_name || "Company Name"}</p></CardContent></Card>
+              {!templates?.length ? <div className="text-center py-12 text-muted-foreground">No styles yet. Create one to customize invoices, quotations, and other documents.</div> : (
+                <div className="grid gap-4 md:grid-cols-3">{templates.map((t) => (
+                  <Card key={t.id}><CardContent className="p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded" style={{ backgroundColor: t.primary_color }} />
+                      <div><p className="font-medium">{t.name}</p>{t.is_default && <Badge variant="outline" className="text-xs">Default</Badge>}</div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{t.company_name || "Company name"} · {t.font_family}</p>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => { setEditingTemplate(t); setTemplateDialogOpen(true); }}><Pencil className="h-3 w-3 mr-1" /> Edit</Button>
+                      <Button size="sm" variant="ghost" onClick={() => deleteTemplate.mutate(t.id)}>Delete</Button>
+                    </div>
+                  </CardContent></Card>
                 ))}</div>
               )}
             </CardContent></Card>

@@ -16,6 +16,8 @@ interface DocumentPreviewProps {
 export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
   ({ type, document, items, template, company, payments }, ref) => {
     const t = resolveDocumentBrand(template, company);
+    const accent = t.primary_color || SAFEQUEST_BRAND.navy;
+    const solidTable = t.table_style === "solid";
 
     const typeLabels = {
       invoice: "INVOICE",
@@ -32,13 +34,38 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
 
     const showMoney = type !== "delivery_note";
     const showBank = t.show_bank_details && (type === "invoice" || type === "quotation" || type === "receipt");
+    const headerCell = solidTable
+      ? { textAlign: "left" as const, backgroundColor: accent, color: "#fff", padding: "7px 6px" }
+      : { textAlign: "left" as const, borderBottom: `2px solid ${accent}`, padding: "6px 4px" };
+    const headerRight = { ...headerCell, textAlign: "right" as const };
+    const bodyCell = { padding: "6px 4px", borderBottom: "1px solid #ddd" };
 
     return (
-      <LetterheadPage ref={ref}>
-        <div style={{ fontSize: "11pt", lineHeight: 1.45 }}>
+      <LetterheadPage
+        ref={ref}
+        headerMode={t.header_mode}
+        letterheadUrl={t.letterhead_url}
+        fontFamily={t.font_family}
+        marginTop={t.margin_top}
+        marginBottom={t.margin_bottom}
+      >
+        <div style={{ fontSize: "11pt", lineHeight: 1.45, fontFamily: t.font_family }}>
+          {(t.show_logo || t.header_mode === "logo") && t.logo_url && (
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <img src={t.logo_url} alt="" style={{ width: t.logo_width || 72, height: "auto", objectFit: "contain" }} />
+              <div>
+                <div style={{ fontWeight: 700, color: accent }}>{t.company_name}</div>
+                {t.company_address && <div style={{ fontSize: "9pt" }}>{t.company_address}</div>}
+                {(t.company_phone || t.company_email) && (
+                  <div style={{ fontSize: "9pt" }}>{[t.company_phone, t.company_email].filter(Boolean).join("  ·  ")}</div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 18 }}>
             <div>
-              <div style={{ fontSize: "16pt", fontWeight: 700, letterSpacing: "0.04em", color: SAFEQUEST_BRAND.navy }}>
+              <div style={{ fontSize: "16pt", fontWeight: 700, letterSpacing: "0.04em", color: accent }}>
                 {typeLabels[type]}
               </div>
               <div style={{ fontWeight: 600 }}>{documentNumber}</div>
@@ -51,11 +78,12 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
               {type === "invoice" && document.due_date && (
                 <div>Due date: {new Date(document.due_date).toLocaleDateString("en-GB")}</div>
               )}
+              {t.company_tpin && <div>TPIN: {t.company_tpin}</div>}
             </div>
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase" }}>
+            <div style={{ fontSize: "9pt", fontWeight: 700, textTransform: "uppercase", color: accent }}>
               {type === "delivery_note" ? "Deliver to" : "Bill to"}
             </div>
             <div style={{ fontWeight: 700 }}>{document.companies?.name || "Walk-in Customer"}</div>
@@ -73,25 +101,25 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
           <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16, fontSize: "10pt" }}>
             <thead>
               <tr>
-                <th style={{ textAlign: "left", borderBottom: `2px solid ${SAFEQUEST_BRAND.navy}`, padding: "6px 4px" }}>Product</th>
-                <th style={{ textAlign: "right", borderBottom: `2px solid ${SAFEQUEST_BRAND.navy}`, padding: "6px 4px" }}>Quantity</th>
+                <th style={headerCell}>Product</th>
+                <th style={headerRight}>Quantity</th>
                 {showMoney && (
                   <>
-                    <th style={{ textAlign: "right", borderBottom: `2px solid ${SAFEQUEST_BRAND.navy}`, padding: "6px 4px" }}>Unit price</th>
-                    <th style={{ textAlign: "right", borderBottom: `2px solid ${SAFEQUEST_BRAND.navy}`, padding: "6px 4px" }}>Total</th>
+                    <th style={headerRight}>Unit price</th>
+                    <th style={headerRight}>Total</th>
                   </>
                 )}
               </tr>
             </thead>
             <tbody>
               {items.map((item, index) => (
-                <tr key={item.id || index}>
-                  <td style={{ padding: "6px 4px", borderBottom: "1px solid #ddd" }}>{item.description}</td>
-                  <td style={{ padding: "6px 4px", borderBottom: "1px solid #ddd", textAlign: "right" }}>{item.quantity}</td>
+                <tr key={item.id || index} style={solidTable && index % 2 ? { backgroundColor: t.secondary_color } : undefined}>
+                  <td style={bodyCell}>{item.description}</td>
+                  <td style={{ ...bodyCell, textAlign: "right" }}>{item.quantity}</td>
                   {showMoney && (
                     <>
-                      <td style={{ padding: "6px 4px", borderBottom: "1px solid #ddd", textAlign: "right" }}>{formatZMW(item.unit_price)}</td>
-                      <td style={{ padding: "6px 4px", borderBottom: "1px solid #ddd", textAlign: "right" }}>{formatZMW(item.total)}</td>
+                      <td style={{ ...bodyCell, textAlign: "right" }}>{formatZMW(item.unit_price)}</td>
+                      <td style={{ ...bodyCell, textAlign: "right" }}>{formatZMW(item.total)}</td>
                     </>
                   )}
                 </tr>
@@ -108,7 +136,7 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
                   <span>Total:</span>
-                  <span style={{ fontWeight: 700 }}>{formatZMW(document.total || 0)}</span>
+                  <span style={{ fontWeight: 700, color: accent }}>{formatZMW(document.total || 0)}</span>
                 </div>
                 <div style={{ fontSize: "9pt", fontStyle: "italic", marginTop: 4 }}>
                   ({amountInWords(Number(document.total) || 0)})
@@ -159,14 +187,22 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
 
           {showBank && (
             <div style={{ marginTop: 18, fontSize: "10pt", textTransform: "uppercase", letterSpacing: "0.02em" }}>
-              <div>Bank name : {t.bank_name || SAFEQUEST_BRAND.bankName}</div>
-              <div>Branch name : {t.bank_branch || SAFEQUEST_BRAND.bankBranch}</div>
-              <div>Account name : {company?.account_name || SAFEQUEST_BRAND.accountName}</div>
-              <div>Account number : {t.bank_account || SAFEQUEST_BRAND.accountNumber}</div>
-              <div style={{ marginTop: 8 }}>Mobile money</div>
-              <div>{SAFEQUEST_BRAND.mobileMoney}</div>
-              <div>{SAFEQUEST_BRAND.mobileMoneyName}</div>
+              <div>Bank name : {t.bank_name}</div>
+              <div>Branch name : {t.bank_branch}</div>
+              <div>Account name : {t.account_name || company?.account_name || SAFEQUEST_BRAND.accountName}</div>
+              <div>Account number : {t.bank_account}</div>
+              {(t.mobile_money || t.mobile_money_name) && (
+                <>
+                  <div style={{ marginTop: 8 }}>Mobile money</div>
+                  {t.mobile_money && <div>{t.mobile_money}</div>}
+                  {t.mobile_money_name && <div>{t.mobile_money_name}</div>}
+                </>
+              )}
             </div>
+          )}
+
+          {t.footer_text && (
+            <div style={{ marginTop: 16, fontSize: "9pt", color: SAFEQUEST_BRAND.muted }}>{t.footer_text}</div>
           )}
         </div>
       </LetterheadPage>

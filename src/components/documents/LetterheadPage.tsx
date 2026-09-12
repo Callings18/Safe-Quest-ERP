@@ -7,10 +7,24 @@ export const LETTERHEAD_MARGIN_TOP_MM = 54;
 export const LETTERHEAD_MARGIN_BOTTOM_MM = 44;
 export const LETTERHEAD_MARGIN_X_MM = 16;
 
-export const LetterheadPage = forwardRef<HTMLDivElement, { children: ReactNode }>(
-  ({ children }, ref) => {
+export type LetterheadAppearance = {
+  letterheadUrl?: string | null;
+  headerMode?: "letterhead" | "logo";
+  fontFamily?: string;
+  marginTop?: number;
+  marginBottom?: number;
+  marginX?: number;
+};
+
+export const LetterheadPage = forwardRef<HTMLDivElement, { children: ReactNode } & LetterheadAppearance>(
+  ({ children, letterheadUrl, headerMode = "letterhead", fontFamily, marginTop, marginBottom, marginX }, ref) => {
     const localRef = useRef<HTMLDivElement | null>(null);
     const [pages, setPages] = useState(1);
+    const useLetterhead = headerMode === "letterhead";
+    const src = letterheadUrl || SAFEQUEST_BRAND.letterhead;
+    const padTop = marginTop ?? (useLetterhead ? LETTERHEAD_MARGIN_TOP_MM : 18);
+    const padBottom = marginBottom ?? (useLetterhead ? LETTERHEAD_MARGIN_BOTTOM_MM : 18);
+    const padX = marginX ?? LETTERHEAD_MARGIN_X_MM;
 
     const setRefs = (node: HTMLDivElement | null) => {
       localRef.current = node;
@@ -29,40 +43,47 @@ export const LetterheadPage = forwardRef<HTMLDivElement, { children: ReactNode }
       const ro = new ResizeObserver(measure);
       ro.observe(el);
       return () => ro.disconnect();
-    }, []);
+    }, [src, headerMode, padTop, padBottom]);
 
     return (
       <div
         ref={setRefs}
         className="letterhead-page mx-auto text-black"
+        data-header-mode={headerMode}
+        data-letterhead-src={useLetterhead ? src : ""}
+        data-margin-top={padTop}
+        data-margin-bottom={padBottom}
+        data-margin-x={padX}
         style={{
           width: `${LETTERHEAD_WIDTH_MM}mm`,
           minHeight: `${LETTERHEAD_PAGE_MM}mm`,
           position: "relative",
           backgroundColor: "#ffffff",
-          fontFamily: "Arial, Helvetica, sans-serif",
+          fontFamily: fontFamily || "Arial, Helvetica, sans-serif",
           color: SAFEQUEST_BRAND.ink,
         }}
       >
-        <div aria-hidden style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-          {Array.from({ length: pages }).map((_, i) => (
-            <img
-              key={i}
-              src={SAFEQUEST_BRAND.letterhead}
-              alt=""
-              style={{
-                display: "block",
-                width: `${LETTERHEAD_WIDTH_MM}mm`,
-                height: `${LETTERHEAD_PAGE_MM}mm`,
-              }}
-            />
-          ))}
-        </div>
+        {useLetterhead && (
+          <div aria-hidden style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+            {Array.from({ length: pages }).map((_, i) => (
+              <img
+                key={`${src}-${i}`}
+                src={src}
+                alt=""
+                style={{
+                  display: "block",
+                  width: `${LETTERHEAD_WIDTH_MM}mm`,
+                  height: `${LETTERHEAD_PAGE_MM}mm`,
+                }}
+              />
+            ))}
+          </div>
+        )}
         <div
           data-letterhead-content
           style={{
             position: "relative",
-            padding: `${LETTERHEAD_MARGIN_TOP_MM}mm ${LETTERHEAD_MARGIN_X_MM}mm ${LETTERHEAD_MARGIN_BOTTOM_MM}mm`,
+            padding: `${padTop}mm ${padX}mm ${padBottom}mm`,
           }}
         >
           {children}

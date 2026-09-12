@@ -8,6 +8,9 @@ import { toast } from "sonner";
 import { formatZMW } from "@/lib/currency";
 import { downloadElementPdf } from "@/lib/pdf";
 import { LetterheadPage } from "@/components/documents/LetterheadPage";
+import { useDefaultTemplate } from "@/hooks/useInvoiceTemplates";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { resolveDocumentBrand } from "@/lib/branding";
 
 interface PayslipViewerProps {
   open: boolean;
@@ -19,6 +22,9 @@ interface PayslipViewerProps {
 
 export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, payDate }: PayslipViewerProps) {
   const { data: payslips, isLoading } = usePayslips(payrollRunId || undefined);
+  const { data: defaultTemplate } = useDefaultTemplate();
+  const { data: company } = useCompanySettings();
+  const brand = resolveDocumentBrand(defaultTemplate, company);
   const [currentIndex, setCurrentIndex] = useState(0);
   const payslipRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
@@ -153,9 +159,16 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
 
             {/* Payslip Content */}
             <ScrollArea className="h-[60vh]">
-              <LetterheadPage ref={payslipRef}>
+              <LetterheadPage
+                ref={payslipRef}
+                headerMode={brand.header_mode}
+                letterheadUrl={brand.letterhead_url}
+                fontFamily={brand.font_family}
+                marginTop={brand.margin_top}
+                marginBottom={brand.margin_bottom}
+              >
                 <div className="flex justify-between items-start mb-5">
-                  <h3 className="text-2xl font-bold" style={{ color: "#0B1F4A" }}>PAYSLIP</h3>
+                  <h3 className="text-2xl font-bold" style={{ color: brand.primary_color }}>PAYSLIP</h3>
                   <div className="text-right text-sm">
                     <p>{payPeriod}</p>
                     <p>Pay date: {new Date(payDate).toLocaleDateString()}</p>
@@ -238,10 +251,10 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
                   </div>
                 </div>
 
-                <div className="border rounded-lg p-4 mb-6" style={{ borderColor: "#0B1F4A" }}>
+                <div className="border rounded-lg p-4 mb-6" style={{ borderColor: brand.primary_color }}>
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-semibold">Net pay</span>
-                    <span className="text-2xl font-bold" style={{ color: "#0B1F4A" }}>{formatZMW(currentPayslip?.net_pay || 0)}</span>
+                    <span className="text-2xl font-bold" style={{ color: brand.primary_color }}>{formatZMW(currentPayslip?.net_pay || 0)}</span>
                   </div>
                 </div>
 

@@ -11,9 +11,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, User, Lock, Bell, Building2, Shield, LogOut, Save, Mail, Phone, Camera } from "lucide-react";
+import { Loader2, User, Lock, Bell, Building2, Shield, LogOut, Save, Mail, Phone, Camera, FileText } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useCompanySettings, useUpdateCompanySettings, useMyRoles, useStaffUsers, useSetUserRole } from "@/hooks/useCompanySettings";
+import { useSearchParams } from "react-router-dom";
+import { DocumentStudio } from "@/components/documents/DocumentStudio";
+import { useDefaultTemplate } from "@/hooks/useInvoiceTemplates";
 
 export default function Settings() {
   const { user, signOut, updatePassword } = useAuth();
@@ -24,6 +27,9 @@ export default function Settings() {
   const { data: staff } = useStaffUsers();
   const setRole = useSetUserRole();
   const isAdmin = myRoles?.includes("admin");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") || "profile";
+  const { data: defaultTemplate } = useDefaultTemplate();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", user?.id],
@@ -133,14 +139,14 @@ export default function Settings() {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-7xl">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
           <p className="text-muted-foreground">Manage your account and system preferences</p>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+        <Tabs value={tab} onValueChange={(value) => setSearchParams(value === "profile" ? {} : { tab: value })} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
             <TabsTrigger value="profile" className="gap-2">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Profile</span>
@@ -156,6 +162,10 @@ export default function Settings() {
             <TabsTrigger value="company" className="gap-2">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Company</span>
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Documents</span>
             </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="roles" className="gap-2">
@@ -418,6 +428,20 @@ export default function Settings() {
                 <Button className="gap-2" onClick={() => updateCompany.mutate(companyForm)} disabled={updateCompany.isPending}>
                   <Save className="h-4 w-4" />Save Bank Details
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="documents" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Document look</CardTitle>
+                <CardDescription>
+                  Change the letterhead, logo, colors, and font used on invoices, quotations, delivery notes, receipts, contracts, and payslips.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DocumentStudio template={defaultTemplate} />
               </CardContent>
             </Card>
           </TabsContent>

@@ -25,6 +25,7 @@ const pages = [
   { label: "Compliance", path: "/compliance", group: "People & risk" },
   { label: "Notifications", path: "/notifications", group: "Workspace" },
   { label: "Settings", path: "/settings", group: "Workspace" },
+  { label: "Customize documents", path: "/settings?tab=documents", group: "Workspace" },
 ];
 
 const creates = [

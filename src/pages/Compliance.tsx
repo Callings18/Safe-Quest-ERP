@@ -14,6 +14,8 @@ import { differenceInDays } from "date-fns";
 import { formatZMW } from "@/lib/currency";
 import { ContractPreview } from "@/components/documents/ContractPreview";
 import { downloadElementPdf } from "@/lib/pdf";
+import { useDefaultTemplate } from "@/hooks/useInvoiceTemplates";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 
 const statusConfig: Record<string, { color: string; icon: any }> = {
   valid: { color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
@@ -28,6 +30,8 @@ export default function Compliance() {
   const createDocument = useCreateComplianceDocument();
   const renewDocument = useRenewComplianceDocument();
   const saveContract = useSaveContract();
+  const { data: defaultTemplate } = useDefaultTemplate();
+  const { data: company } = useCompanySettings();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [contractDialog, setContractDialog] = useState(false);
@@ -336,7 +340,14 @@ export default function Compliance() {
                 </Button>
               </div>
             </DialogHeader>
-            {viewContract && <ContractPreview ref={contractPrintRef} contract={viewContract} />}
+            {viewContract && (
+              <ContractPreview
+                ref={contractPrintRef}
+                contract={viewContract}
+                template={defaultTemplate}
+                company={company}
+              />
+            )}
           </DialogContent>
         </Dialog>
         <Dialog open={!!viewDoc} onOpenChange={(open) => !open && setViewDoc(null)}>
