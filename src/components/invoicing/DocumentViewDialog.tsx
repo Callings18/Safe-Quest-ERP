@@ -52,15 +52,9 @@ export function DocumentViewDialog({
           <title>${typeLabels[type]} ${document?.invoice_number || document?.quotation_number || ""}</title>
           <style>
             @page { size: A4; margin: 0; }
-            body { margin: 0; padding: 0; font-family: Inter, Arial, sans-serif; }
-            .letterhead-page {
-              width: 210mm;
-              min-height: 297mm;
-              background-image: url("${window.location.origin}/letterhead.png");
-              background-size: 210mm 297mm;
-              background-repeat: repeat-y;
-              box-shadow: none !important;
-            }
+            body { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; }
+            .letterhead-page { box-shadow: none !important; }
+            img { max-width: none; }
             @media print {
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
@@ -71,10 +65,20 @@ export function DocumentViewDialog({
     `);
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => {
+    const waitForImages = Promise.all(
+      Array.from(printWindow.document.images).map((img) =>
+        img.complete
+          ? Promise.resolve()
+          : new Promise<void>((resolve) => {
+              img.onload = () => resolve();
+              img.onerror = () => resolve();
+            }),
+      ),
+    );
+    waitForImages.then(() => {
       printWindow.print();
       printWindow.close();
-    }, 250);
+    });
   };
 
   const handleDownloadPDF = async () => {
@@ -109,7 +113,7 @@ export function DocumentViewDialog({
             </div>
           </div>
         </DialogHeader>
-        <div className="border rounded-lg overflow-hidden">
+        <div className="border rounded-lg overflow-x-auto bg-neutral-200 p-3">
           <DocumentPreview
             ref={printRef}
             type={type}
