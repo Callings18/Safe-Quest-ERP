@@ -56,7 +56,7 @@ export function useCreateQuotation() {
       const quotation_number = await nextDocumentNumber("QT");
       
       let subtotal = 0;
-      const taxRate = quotation.tax_rate || 16;
+      const taxRate = quotation.tax_rate ?? 16;
       
       quotation.items.forEach((item) => {
         subtotal += item.quantity * item.unit_price;
@@ -131,7 +131,7 @@ export function useUpdateQuotation() {
       }>;
     }) => {
       let subtotal = 0;
-      const taxRate = quotation.tax_rate || 16;
+      const taxRate = quotation.tax_rate ?? 16;
       
       quotation.items.forEach((item) => {
         subtotal += item.quantity * item.unit_price;

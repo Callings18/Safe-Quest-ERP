@@ -11,12 +11,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, User, Lock, Bell, Building2, Shield, LogOut, Save, Mail, Phone, Camera, FileText } from "lucide-react";
+import { Loader2, User, Lock, Bell, Building2, Shield, LogOut, Save, Mail, Phone, Camera, FileText, Percent } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useCompanySettings, useUpdateCompanySettings, useMyRoles, useStaffUsers, useSetUserRole } from "@/hooks/useCompanySettings";
 import { useSearchParams } from "react-router-dom";
 import { DocumentStudio } from "@/components/documents/DocumentStudio";
 import { useDefaultTemplate } from "@/hooks/useInvoiceTemplates";
+import { TaxSettingsPanel } from "@/components/settings/TaxSettingsPanel";
 
 export default function Settings() {
   const { user, signOut, updatePassword } = useAuth();
@@ -146,7 +147,7 @@ export default function Settings() {
         </div>
 
         <Tabs value={tab} onValueChange={(value) => setSearchParams(value === "profile" ? {} : { tab: value })} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
             <TabsTrigger value="profile" className="gap-2">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Profile</span>
@@ -166,6 +167,10 @@ export default function Settings() {
             <TabsTrigger value="documents" className="gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Documents</span>
+            </TabsTrigger>
+            <TabsTrigger value="tax" className="gap-2">
+              <Percent className="h-4 w-4" />
+              <span className="hidden sm:inline">Tax</span>
             </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="roles" className="gap-2">
@@ -444,6 +449,10 @@ export default function Settings() {
                 <DocumentStudio template={defaultTemplate} />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="tax" className="space-y-6">
+            <TaxSettingsPanel />
           </TabsContent>
 
           {isAdmin && (

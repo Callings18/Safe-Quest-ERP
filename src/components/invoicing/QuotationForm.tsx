@@ -8,6 +8,8 @@ import { Plus, Trash2, Loader2 } from "lucide-react";
 import { useCreateQuotation, useUpdateQuotation } from "@/hooks/useQuotations";
 import { formatZMW } from "@/lib/currency";
 import { CustomerPicker } from "@/components/crm/CustomerPicker";
+import { useTaxSettings } from "@/hooks/useTaxSettings";
+import { effectiveVatRate } from "@/lib/zambia-tax";
 
 interface QuotationFormProps {
   onSuccess: () => void;
@@ -35,6 +37,8 @@ interface LineItem {
 export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
   const createQuotation = useCreateQuotation();
   const updateQuotation = useUpdateQuotation();
+  const { settings: tax } = useTaxSettings();
+  const vatRate = effectiveVatRate(tax);
 
   const [form, setForm] = useState({
     company_id: "",
@@ -53,7 +57,7 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
       setForm({
         company_id: editData.company_id || "",
         valid_until: editData.valid_until || "",
-        tax_rate: String(editData.tax_rate || 16),
+        tax_rate: String(editData.tax_rate ?? vatRate),
         notes: editData.notes || "",
         terms: editData.terms || "",
       });
@@ -64,8 +68,10 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
           unit_price: Number(item.unit_price),
         })));
       }
+      return;
     }
-  }, [editData]);
+    setForm((current) => ({ ...current, tax_rate: String(vatRate) }));
+  }, [editData, vatRate]);
 
   const addItem = () => {
     setItems([...items, { description: "", quantity: 1, unit_price: 0 }]);
@@ -133,8 +139,11 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="0">0%</SelectItem>
-            <SelectItem value="16">16%</SelectItem>
+            <SelectItem value="0">0% (no VAT)</SelectItem>
+            {tax.vat_enabled && (
+              <SelectItem value={String(tax.vat_rate)}>{tax.vat_rate}%</SelectItem>
+            )}
+            {tax.vat_enabled && tax.vat_rate !== 16 && <SelectItem value="16">16%</SelectItem>}
           </SelectContent>
         </Select>
       </div>

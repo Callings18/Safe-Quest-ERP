@@ -26,6 +26,7 @@ const pages = [
   { label: "Notifications", path: "/notifications", group: "Workspace" },
   { label: "Settings", path: "/settings", group: "Workspace" },
   { label: "Customize documents", path: "/settings?tab=documents", group: "Workspace" },
+  { label: "Tax settings", path: "/settings?tab=tax", group: "Workspace" },
 ];
 
 const creates = [

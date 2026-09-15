@@ -1,22 +1,19 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders, json } from "../_shared/cors.ts";
 
+const NAPSA_CEILING_2026 = 37236;
+
 function paye(gross: number, rates: Array<{ rate_type: string; min_amount: number | null; max_amount: number | null; rate: number }>) {
   const bands = rates
     .filter((r) => r.rate_type === "PAYE")
     .sort((a, b) => Number(a.min_amount) - Number(b.min_amount));
   let tax = 0;
-  let remaining = gross;
   for (const band of bands) {
     const min = Number(band.min_amount) || 0;
+    if (gross <= min) continue;
     const max = band.max_amount != null ? Number(band.max_amount) : Infinity;
-    if (remaining <= 0) break;
-    const width = max - min;
-    const inBand = Math.min(remaining, width);
-    if (gross > min) {
-      tax += inBand * Number(band.rate);
-      remaining -= inBand;
-    }
+    const taxable = Math.min(gross, max) - min;
+    if (taxable > 0) tax += taxable * Number(band.rate);
   }
   return Math.round(tax * 100) / 100;
 }
@@ -57,7 +54,7 @@ Deno.serve(async (req) => {
 
   for (const emp of employees) {
     const gross = Number(emp.basic_salary) || 0;
-    const ceiling = napsaEmp?.max_amount ? Number(napsaEmp.max_amount) : 34900;
+    const ceiling = napsaEmp?.max_amount != null ? Number(napsaEmp.max_amount) : NAPSA_CEILING_2026;
     const napsaE = Math.round(Math.min(gross, ceiling) * (napsaEmp ? Number(napsaEmp.rate) : 0.05) * 100) / 100;
     const napsaR = Math.round(Math.min(gross, ceiling) * (napsaEr ? Number(napsaEr.rate) : 0.05) * 100) / 100;
     const nh = Math.round(gross * (nhima ? Number(nhima.rate) : 0.01) * 100) / 100;

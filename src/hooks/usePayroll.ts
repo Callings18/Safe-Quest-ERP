@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  calculateNAPSA as napsaFromGross,
+  calculateNHIMA as nhimaFromGross,
+  calculatePAYE as payeFromBands,
+  NAPSA_CEILING_2026,
+  type PayeBand,
+} from "@/lib/zambia-tax";
 
 export function useEmployees() {
   return useQuery({
@@ -67,56 +74,40 @@ export function usePayslips(payrollRunId?: string) {
   });
 }
 
-// Zambia PAYE calculation
-export function calculatePAYE(grossPay: number, rates: any[]): number {
-  const payeRates = rates
+function bandsFromRates(rates: any[]): PayeBand[] {
+  return rates
     .filter((r) => r.rate_type === "PAYE")
-    .sort((a, b) => Number(a.min_amount) - Number(b.min_amount));
-
-  let paye = 0;
-  let remainingIncome = grossPay;
-
-  for (const band of payeRates) {
-    const min = Number(band.min_amount) || 0;
-    const max = band.max_amount ? Number(band.max_amount) : Infinity;
-    const rate = Number(band.rate) || 0;
-
-    if (remainingIncome <= 0) break;
-
-    const bandWidth = max - min;
-    const taxableInBand = Math.min(remainingIncome, bandWidth);
-    
-    if (grossPay > min) {
-      paye += taxableInBand * rate;
-      remainingIncome -= taxableInBand;
-    }
-  }
-
-  return Math.round(paye * 100) / 100;
+    .map((r) => ({
+      rate_name: r.rate_name,
+      min_amount: Number(r.min_amount) || 0,
+      max_amount: r.max_amount == null ? null : Number(r.max_amount),
+      rate: Number(r.rate) || 0,
+    }));
 }
 
-// NAPSA calculation (5% capped at ceiling)
+export function calculatePAYE(grossPay: number, rates: any[]): number {
+  return payeFromBands(grossPay, bandsFromRates(rates));
+}
+
 export function calculateNAPSA(grossPay: number, rates: any[]): { employee: number; employer: number } {
   const napsaEmployee = rates.find((r) => r.rate_type === "NAPSA_EMPLOYEE");
   const napsaEmployer = rates.find((r) => r.rate_type === "NAPSA_EMPLOYER");
-
-  const ceiling = napsaEmployee?.max_amount ? Number(napsaEmployee.max_amount) : 111600;
-  const cappedGross = Math.min(grossPay, ceiling);
-
-  const employeeRate = napsaEmployee ? Number(napsaEmployee.rate) : 0.05;
-  const employerRate = napsaEmployer ? Number(napsaEmployer.rate) : 0.05;
-
-  return {
-    employee: Math.round(cappedGross * employeeRate * 100) / 100,
-    employer: Math.round(cappedGross * employerRate * 100) / 100,
-  };
+  return napsaFromGross(
+    grossPay,
+    napsaEmployee?.max_amount != null ? Number(napsaEmployee.max_amount) : NAPSA_CEILING_2026,
+    napsaEmployee ? Number(napsaEmployee.rate) : 0.05,
+    napsaEmployer ? Number(napsaEmployer.rate) : 0.05,
+  );
 }
 
-// NHIMA calculation (1%)
 export function calculateNHIMA(grossPay: number, rates: any[]): number {
   const nhimaRate = rates.find((r) => r.rate_type === "NHIMA_EMPLOYEE");
-  const rate = nhimaRate ? Number(nhimaRate.rate) : 0.01;
-  return Math.round(grossPay * rate * 100) / 100;
+  return nhimaFromGross(grossPay, nhimaRate ? Number(nhimaRate.rate) : 0.01, 0.01).employee;
+}
+
+export function calculateNHIMAEmployer(grossPay: number, rates: any[]): number {
+  const nhimaRate = rates.find((r) => r.rate_type === "NHIMA_EMPLOYER") || rates.find((r) => r.rate_type === "NHIMA_EMPLOYEE");
+  return nhimaFromGross(grossPay, 0.01, nhimaRate ? Number(nhimaRate.rate) : 0.01).employer;
 }
 
 export function useCreatePayrollRun() {

@@ -11,6 +11,8 @@ import { LetterheadPage } from "@/components/documents/LetterheadPage";
 import { useDefaultTemplate } from "@/hooks/useInvoiceTemplates";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { resolveDocumentBrand } from "@/lib/branding";
+import { useTaxSettings } from "@/hooks/useTaxSettings";
+import { formatBankLine } from "@/lib/zambia-tax";
 
 interface PayslipViewerProps {
   open: boolean;
@@ -24,6 +26,7 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
   const { data: payslips, isLoading } = usePayslips(payrollRunId || undefined);
   const { data: defaultTemplate } = useDefaultTemplate();
   const { data: company } = useCompanySettings();
+  const { settings: tax } = useTaxSettings();
   const brand = resolveDocumentBrand(defaultTemplate, company);
   const [currentIndex, setCurrentIndex] = useState(0);
   const payslipRef = useRef<HTMLDivElement>(null);
@@ -229,7 +232,7 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
                         <span>-{formatZMW(currentPayslip?.napsa_employee || 0)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>NHIMA (1%)</span>
+                        <span>NHIMA ({(tax.nhima_employee_rate * 100).toFixed(0)}%)</span>
                         <span>-{formatZMW(currentPayslip?.nhima || 0)}</span>
                       </div>
                       {Number(currentPayslip?.other_deductions || 0) > 0 && (
@@ -266,9 +269,16 @@ export function PayslipViewer({ open, onOpenChange, payrollRunId, payPeriod, pay
                   </div>
                 )}
 
-                <div className="text-sm border-t pt-4">
+                <div className="text-sm border-t pt-4 space-y-1">
                   <p className="font-medium mb-2">Employer contributions (not deducted from salary):</p>
-                  <span>NAPSA (Employer 5%): {formatZMW(currentPayslip?.napsa_employer || 0)}</span>
+                  <p>NAPSA (employer {(tax.napsa_employer_rate * 100).toFixed(0)}%): {formatZMW(currentPayslip?.napsa_employer || 0)}</p>
+                  <p>NHIMA (employer {(tax.nhima_employer_rate * 100).toFixed(0)}%): {formatZMW(Math.round(Number(currentPayslip?.gross_pay || 0) * tax.nhima_employer_rate * 100) / 100)}</p>
+                </div>
+                <div className="text-xs text-muted-foreground border-t pt-4 mt-4 space-y-1">
+                  <p className="font-medium text-foreground">Statutory remittance accounts</p>
+                  <p>PAYE (ZRA): {formatBankLine(tax.zra_paye)}</p>
+                  <p>NAPSA: {formatBankLine(tax.napsa)}</p>
+                  <p>NHIMA: {formatBankLine(tax.nhima)}</p>
                 </div>
                 <p className="text-center text-xs text-gray-500 mt-6">This is a computer-generated payslip. No signature required.</p>
               </LetterheadPage>

@@ -546,6 +546,7 @@ export type Database = {
           id: string
           logo_url: string | null
           phone: string | null
+          tax_config: Json
           tpin: string | null
           updated_at: string
           updated_by: string | null
@@ -563,6 +564,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           phone?: string | null
+          tax_config?: Json
           tpin?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -580,6 +582,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           phone?: string | null
+          tax_config?: Json
           tpin?: string | null
           updated_at?: string
           updated_by?: string | null

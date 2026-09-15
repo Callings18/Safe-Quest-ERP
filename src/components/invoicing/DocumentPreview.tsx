@@ -134,6 +134,12 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
                   <span>Subtotal:</span>
                   <span>{formatZMW(document.subtotal || 0)}</span>
                 </div>
+                {Number(document.tax_amount) > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
+                    <span>VAT{document.tax_rate != null ? ` (${document.tax_rate}%)` : ""}:</span>
+                    <span>{formatZMW(document.tax_amount)}</span>
+                  </div>
+                )}
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
                   <span>Total:</span>
                   <span style={{ fontWeight: 700, color: accent }}>{formatZMW(document.total || 0)}</span>

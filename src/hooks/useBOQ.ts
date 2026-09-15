@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { nextDocumentNumber } from "@/lib/documents";
+import { useTaxSettings } from "@/hooks/useTaxSettings";
+import { effectiveVatRate } from "@/lib/zambia-tax";
 
 export type BOQItemInput = {
   section_name?: string;
@@ -177,6 +179,8 @@ export function useDeleteBOQ() {
 // Convert a BOQ into a quotation with one line per BOQ item
 export function useConvertBOQToQuotation() {
   const qc = useQueryClient();
+  const { settings: tax } = useTaxSettings();
+  const vatRate = effectiveVatRate(tax);
   return useMutation({
     mutationFn: async (boqId: string) => {
       const { data: boq, error } = await supabase
@@ -196,13 +200,13 @@ export function useConvertBOQToQuotation() {
           description: `${i.item_code ? i.item_code + " - " : ""}${i.description} (${i.unit})`,
           quantity: qty,
           unit_price: unitPrice,
-          tax_rate: 16,
-          total: Math.round(qty * unitPrice * 1.16 * 100) / 100,
+          tax_rate: vatRate,
+          total: Math.round(qty * unitPrice * (1 + vatRate / 100) * 100) / 100,
         };
       });
 
       const subtotal = items.reduce((s: number, i: any) => s + i.quantity * i.unit_price, 0);
-      const tax_amount = subtotal * 0.16;
+      const tax_amount = subtotal * (vatRate / 100);
 
       const { data: quote, error: qErr } = await supabase
         .from("quotations")
@@ -212,7 +216,7 @@ export function useConvertBOQToQuotation() {
           project_id: boq.project_id,
           status: "draft",
           subtotal,
-          tax_rate: 16,
+          tax_rate: vatRate,
           tax_amount,
           total: subtotal + tax_amount,
           notes: `Generated from ${boq.boq_number} - ${boq.title}`,

@@ -8,6 +8,8 @@ import { Plus, Trash2, Loader2 } from "lucide-react";
 import { useCreateInvoice, useUpdateInvoice } from "@/hooks/useInvoices";
 import { formatZMW } from "@/lib/currency";
 import { CustomerPicker } from "@/components/crm/CustomerPicker";
+import { useTaxSettings } from "@/hooks/useTaxSettings";
+import { effectiveVatRate } from "@/lib/zambia-tax";
 
 interface InvoiceFormProps {
   onSuccess: () => void;
@@ -35,6 +37,8 @@ interface LineItem {
 export function InvoiceForm({ onSuccess, editData }: InvoiceFormProps) {
   const createInvoice = useCreateInvoice();
   const updateInvoice = useUpdateInvoice();
+  const { settings: tax } = useTaxSettings();
+  const vatRate = effectiveVatRate(tax);
 
   const [form, setForm] = useState({
     company_id: "",
@@ -58,14 +62,16 @@ export function InvoiceForm({ onSuccess, editData }: InvoiceFormProps) {
           description: item.description,
           quantity: Number(item.quantity),
           unit_price: Number(item.unit_price),
-          tax_rate: Number(item.tax_rate) || 16,
+          tax_rate: Number(item.tax_rate) || 0,
         })));
       }
+      return;
     }
-  }, [editData]);
+    setItems((current) => current.map((item) => ({ ...item, tax_rate: vatRate })));
+  }, [editData, vatRate]);
 
   const addItem = () => {
-    setItems([...items, { description: "", quantity: 1, unit_price: 0, tax_rate: 16 }]);
+    setItems([...items, { description: "", quantity: 1, unit_price: 0, tax_rate: vatRate }]);
   };
 
   const removeItem = (index: number) => {
@@ -168,7 +174,10 @@ export function InvoiceForm({ onSuccess, editData }: InvoiceFormProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="0">0%</SelectItem>
-                    <SelectItem value="16">16%</SelectItem>
+                    {tax.vat_enabled && (
+                      <SelectItem value={String(tax.vat_rate)}>{tax.vat_rate}%</SelectItem>
+                    )}
+                    {tax.vat_enabled && tax.vat_rate !== 16 && <SelectItem value="16">16%</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -195,7 +204,7 @@ export function InvoiceForm({ onSuccess, editData }: InvoiceFormProps) {
               <span>{formatZMW(subtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span>VAT:</span>
+              <span>{tax.vat_enabled ? `VAT (${tax.vat_rate}%):` : "VAT (off):"}</span>
               <span>{formatZMW(taxAmount)}</span>
             </div>
             <div className="flex justify-between font-bold text-lg border-t pt-2">

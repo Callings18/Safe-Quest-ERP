@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useEmployees, usePayrollRates, usePayrollRuns, useCreatePayrollRun } from "@/hooks/usePayroll";
+import { useEmployees, usePayrollRates, usePayrollRuns, useCreatePayrollRun, usePayslips } from "@/hooks/usePayroll";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -16,6 +16,9 @@ import { Loader2, Calculator, Download, Send, Users, Wallet, FileText, AlertTria
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PayslipViewer } from "@/components/payroll/PayslipViewer";
 import { formatZMW } from "@/lib/currency";
+import { useTaxSettings } from "@/hooks/useTaxSettings";
+import { downloadCsv, formatBankLine } from "@/lib/zambia-tax";
+import { Link } from "react-router-dom";
 
 const departments = ["Administration", "Finance", "Operations", "Sales", "Engineering", "HR", "IT", "Projects", "Field Operations"];
 
@@ -25,6 +28,9 @@ export default function Payroll() {
   const { data: payrollRuns, isLoading: runsLoading } = usePayrollRuns();
   const createPayrollRun = useCreatePayrollRun();
   const queryClient = useQueryClient();
+  const { settings: tax } = useTaxSettings();
+  const latestRun = payrollRuns?.[0];
+  const { data: latestSlips } = usePayslips(latestRun?.id);
 
   const [employeeDialog, setEmployeeDialog] = useState(false);
   const [payrollDialog, setPayrollDialog] = useState(false);
@@ -177,9 +183,79 @@ export default function Payroll() {
   };
 
   const payeBands = payrollRates?.filter(r => r.rate_type === "PAYE") || [];
-  const latestRun = payrollRuns?.[0];
 
   const totalPayroll = employees?.reduce((sum, emp) => sum + Number(emp.basic_salary || 0), 0) || 0;
+
+  const generateStatutory = (kind: "paye" | "napsa" | "nhima") => {
+    if (!latestRun || !latestSlips?.length) {
+      toast.error("Run payroll first so there is a period to report");
+      return;
+    }
+    const period = latestRun.pay_period;
+    const bank =
+      kind === "paye" ? tax.zra_paye : kind === "napsa" ? tax.napsa : tax.nhima;
+    const header = [
+      ["SAFEQUEST (Z) LIMITED"],
+      [kind === "paye" ? "ZRA PAYE return" : kind === "napsa" ? "NAPSA contribution schedule" : "NHIMA contribution report"],
+      ["Pay period", period],
+      ["Pay date", latestRun.pay_date],
+      ["Remit to bank", formatBankLine(bank)],
+      [],
+    ];
+    const rows =
+      kind === "paye"
+        ? [
+            ["Employee no", "Name", "NRC", "TPIN", "Gross", "PAYE"],
+            ...latestSlips.map((s: any) => [
+              s.employees?.employee_number || "",
+              `${s.employees?.first_name || ""} ${s.employees?.last_name || ""}`.trim(),
+              s.employees?.national_id || "",
+              s.employees?.tax_pin || "",
+              String(s.gross_pay || 0),
+              String(s.paye || 0),
+            ]),
+            ["", "", "", "Totals", String(latestRun.total_gross || 0), String(latestRun.total_paye || 0)],
+          ]
+        : kind === "napsa"
+          ? [
+              ["Employee no", "Name", "NAPSA no", "Gross", "Employee 5%", "Employer 5%", "Total"],
+              ...latestSlips.map((s: any) => [
+                s.employees?.employee_number || "",
+                `${s.employees?.first_name || ""} ${s.employees?.last_name || ""}`.trim(),
+                s.employees?.napsa_number || "",
+                String(s.gross_pay || 0),
+                String(s.napsa_employee || 0),
+                String(s.napsa_employer || 0),
+                String(Number(s.napsa_employee || 0) + Number(s.napsa_employer || 0)),
+              ]),
+              [
+                "",
+                "",
+                "Totals",
+                String(latestRun.total_gross || 0),
+                String(latestRun.total_napsa_employee || 0),
+                String(latestRun.total_napsa_employer || 0),
+                String(Number(latestRun.total_napsa_employee || 0) + Number(latestRun.total_napsa_employer || 0)),
+              ],
+            ]
+          : [
+              ["Employee no", "Name", "NHIMA no", "Gross", "Employee 1%", "Employer 1%", "Total"],
+              ...latestSlips.map((s: any) => {
+                const employer = Math.round(Number(s.gross_pay || 0) * tax.nhima_employer_rate * 100) / 100;
+                return [
+                  s.employees?.employee_number || "",
+                  `${s.employees?.first_name || ""} ${s.employees?.last_name || ""}`.trim(),
+                  s.employees?.nhima_number || "",
+                  String(s.gross_pay || 0),
+                  String(s.nhima || 0),
+                  String(employer),
+                  String(Number(s.nhima || 0) + employer),
+                ];
+              }),
+            ];
+    downloadCsv(`${kind}-${period.replace(/\s/g, "-")}.csv`, [...header, ...rows]);
+    toast.success("Report downloaded");
+  };
 
   return (
     <AppLayout>
@@ -360,8 +436,8 @@ export default function Payroll() {
                 <div className="grid gap-6 md:grid-cols-5">
                   <div className="space-y-1"><p className="text-sm text-muted-foreground">Gross Pay</p><p className="text-2xl font-bold">{formatZMW(latestRun.total_gross || 0)}</p></div>
                   <div className="space-y-1"><p className="text-sm text-muted-foreground">PAYE</p><p className="text-xl font-semibold text-destructive">-{formatZMW(latestRun.total_paye || 0)}</p></div>
-                  <div className="space-y-1"><p className="text-sm text-muted-foreground">NAPSA (10%)</p><p className="text-xl font-semibold text-destructive">-{formatZMW(latestRun.total_napsa_employee || 0)}</p></div>
-                  <div className="space-y-1"><p className="text-sm text-muted-foreground">NHIMA (1%)</p><p className="text-xl font-semibold text-destructive">-{formatZMW(latestRun.total_nhima || 0)}</p></div>
+                  <div className="space-y-1"><p className="text-sm text-muted-foreground">NAPSA (employee)</p><p className="text-xl font-semibold text-destructive">-{formatZMW(latestRun.total_napsa_employee || 0)}</p></div>
+                  <div className="space-y-1"><p className="text-sm text-muted-foreground">NHIMA (employee)</p><p className="text-xl font-semibold text-destructive">-{formatZMW(latestRun.total_nhima || 0)}</p></div>
                   <div className="space-y-1 p-4 rounded-lg bg-success/10 border border-success/20"><p className="text-sm text-success">Net Pay</p><p className="text-2xl font-bold text-success">{formatZMW(latestRun.total_net || 0)}</p></div>
                 </div>
               )}
@@ -398,7 +474,9 @@ export default function Payroll() {
                   <div className="flex items-center justify-between p-2 rounded bg-background/50"><span className="text-sm">NHIMA</span><Badge variant="outline">Due: 10th</Badge></div>
                 </div>
               </div>
-              <Button variant="outline" size="sm">Generate Reports</Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/settings?tab=tax">Tax banks & rates</Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -529,7 +607,9 @@ export default function Payroll() {
 
           <TabsContent value="taxbands">
             <Card>
-              <CardHeader><CardTitle className="text-lg">Zambia PAYE Tax Bands (2024)</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="text-lg">Zambia PAYE tax bands (monthly)</CardTitle>
+              </CardHeader>
               <CardContent>
                 {ratesLoading ? (
                   <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
@@ -546,7 +626,28 @@ export default function Payroll() {
                     ))}
                   </div>
                 )}
-                <p className="text-sm text-muted-foreground mt-4">* Tax bands are updated annually by ZRA. Admin can update these in Settings.</p>
+                <p className="text-sm text-muted-foreground mt-4">
+                  PAYE is on gross salary. NAPSA ceiling {formatZMW(tax.napsa_ceiling)} (5% + 5%). NHIMA {(tax.nhima_employee_rate * 100).toFixed(0)}% employee + {(tax.nhima_employer_rate * 100).toFixed(0)}% employer.{" "}
+                  <Link to="/settings?tab=tax" className="text-primary underline">Edit rates and tax banks in Settings</Link>.
+                </p>
+                <div className="grid gap-3 md:grid-cols-2 mt-6">
+                  <div className="rounded-lg border p-3 text-sm">
+                    <p className="font-medium">ZRA PAYE bank</p>
+                    <p className="text-muted-foreground">{formatBankLine(tax.zra_paye)}</p>
+                  </div>
+                  <div className="rounded-lg border p-3 text-sm">
+                    <p className="font-medium">ZRA VAT bank</p>
+                    <p className="text-muted-foreground">{formatBankLine(tax.zra_vat)}</p>
+                  </div>
+                  <div className="rounded-lg border p-3 text-sm">
+                    <p className="font-medium">NAPSA bank</p>
+                    <p className="text-muted-foreground">{formatBankLine(tax.napsa)}</p>
+                  </div>
+                  <div className="rounded-lg border p-3 text-sm">
+                    <p className="font-medium">NHIMA bank</p>
+                    <p className="text-muted-foreground">{formatBankLine(tax.nhima)}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -559,7 +660,7 @@ export default function Payroll() {
                     <div className="mx-auto h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center"><FileText className="h-6 w-6 text-primary" /></div>
                     <h3 className="font-semibold">PAYE Return</h3>
                     <p className="text-sm text-muted-foreground">Generate ZRA PAYE submission file</p>
-                    <Button variant="outline" size="sm" className="mt-2">Generate</Button>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => generateStatutory("paye")}>Generate</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -569,7 +670,7 @@ export default function Payroll() {
                     <div className="mx-auto h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center"><FileText className="h-6 w-6 text-success" /></div>
                     <h3 className="font-semibold">NAPSA Schedule</h3>
                     <p className="text-sm text-muted-foreground">Generate NAPSA contribution schedule</p>
-                    <Button variant="outline" size="sm" className="mt-2">Generate</Button>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => generateStatutory("napsa")}>Generate</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -579,7 +680,7 @@ export default function Payroll() {
                     <div className="mx-auto h-12 w-12 rounded-xl bg-info/10 flex items-center justify-center"><FileText className="h-6 w-6 text-info" /></div>
                     <h3 className="font-semibold">NHIMA Report</h3>
                     <p className="text-sm text-muted-foreground">Generate NHIMA contribution report</p>
-                    <Button variant="outline" size="sm" className="mt-2">Generate</Button>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => generateStatutory("nhima")}>Generate</Button>
                   </div>
                 </CardContent>
               </Card>
