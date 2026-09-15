@@ -1,0 +1,15 @@
+{
+  "name": "SafeQuest ERP",
+  "short_name": "SafeQuest",
+  "description": "SAFEQUEST (Z) LIMITED operations software for construction, solar, electrical, security and lending in Zambia.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B1F4A",
+  "theme_color": "#0B1F4A",
+  "lang": "en-ZM",
+  "icons": [
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
