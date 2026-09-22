@@ -89,3 +89,80 @@ export function useCreateProject() {
     },
   });
 }
+
+export function useProjectDocuments(projectId?: string | null) {
+  return useQuery({
+    queryKey: ["project_documents", projectId],
+    queryFn: async () => {
+      if (!projectId) return { quotations: [], invoices: [], boqs: [] };
+      const [q, inv, boq] = await Promise.all([
+        supabase
+          .from("quotations")
+          .select("id, quotation_number, status, total, created_at")
+          .eq("project_id", projectId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("invoices")
+          .select("id, invoice_number, status, total, is_proforma, created_at")
+          .eq("project_id", projectId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("boqs")
+          .select("id, boq_number, title, status, total, created_at")
+          .eq("project_id", projectId)
+          .order("created_at", { ascending: false }),
+      ]);
+      if (q.error) throw q.error;
+      if (inv.error) throw inv.error;
+      if (boq.error) throw boq.error;
+      return {
+        quotations: q.data || [],
+        invoices: inv.data || [],
+        boqs: boq.data || [],
+      };
+    },
+    enabled: !!projectId,
+  });
+}
+
+export function useUpdateProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...project
+    }: {
+      id: string;
+      name?: string;
+      description?: string;
+      project_type?: string;
+      company_id?: string | null;
+      site_address?: string | null;
+      city?: string | null;
+      start_date?: string | null;
+      end_date?: string | null;
+      budget?: number | null;
+      status?: string;
+      progress?: number;
+    }) => {
+      const { data, error } = await supabase
+        .from("projects")
+        .update(project as never)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["project_stats"] });
+      toast.success("Project updated");
+    },
+    onError: (error) => {
+      toast.error("Failed to update project: " + error.message);
+    },
+  });
+}
+

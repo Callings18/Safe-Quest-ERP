@@ -187,3 +187,81 @@ export function useUpdateLeadStatus() {
     onError: (error: Error) => toast.error(error.message),
   });
 }
+
+/** Create a draft quotation from a lead (single line from estimated value). */
+export function useConvertLeadToQuotation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (leadId: string) => {
+      const { data: lead, error } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("id", leadId)
+        .single();
+      if (error) throw error;
+
+      const { nextDocumentNumber } = await import("@/lib/documents");
+      const { lineTaxTotal } = await import("@/lib/document-tax");
+      const { effectiveVatRate, parseTaxConfig } = await import("@/lib/zambia-tax");
+
+      let taxRate = 16;
+      try {
+        const raw = localStorage.getItem("safequest_tax_config");
+        if (raw) taxRate = effectiveVatRate(parseTaxConfig(JSON.parse(raw)));
+        else {
+          const { data: settings } = await supabase.from("company_settings").select("tax_config").limit(1).maybeSingle();
+          if (settings?.tax_config) taxRate = effectiveVatRate(parseTaxConfig(settings.tax_config));
+        }
+      } catch {
+        /* default 16% */
+      }
+
+      const unitPrice = Number(lead.value) || 0;
+      const subtotal = unitPrice;
+      const tax_amount = Math.round(subtotal * (taxRate / 100) * 100) / 100;
+      const total = Math.round((subtotal + tax_amount) * 100) / 100;
+
+      const { data: qt, error: qErr } = await supabase
+        .from("quotations")
+        .insert({
+          quotation_number: await nextDocumentNumber("QT"),
+          company_id: lead.company_id || null,
+          contact_id: lead.contact_id || null,
+          status: "draft",
+          subtotal,
+          tax_rate: taxRate,
+          tax_amount,
+          total,
+          notes: `From lead: ${lead.title}${lead.description ? ` — ${lead.description}` : ""}`,
+        })
+        .select()
+        .single();
+      if (qErr) throw qErr;
+
+      const { error: iErr } = await supabase.from("quotation_items").insert({
+        quotation_id: qt.id,
+        description: lead.title,
+        quantity: 1,
+        unit_price: unitPrice,
+        tax_rate: taxRate,
+        total: lineTaxTotal(1, unitPrice, taxRate),
+      });
+      if (iErr) throw iErr;
+
+      if (lead.status !== "won" && lead.status !== "lost") {
+        await supabase.from("leads").update({ status: "proposal" }).eq("id", leadId);
+      }
+
+      await logActivity("Quotation from lead", "quotation", qt.id, qt.quotation_number);
+      return qt;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead_stats"] });
+      queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard_activity"] });
+      toast.success("Draft quotation created from lead");
+    },
+    onError: (error: Error) => toast.error("Failed to create quotation: " + error.message),
+  });
+}

@@ -8,6 +8,7 @@ import { Plus, Trash2, Loader2, RefreshCw } from "lucide-react";
 import { useCreateQuotation, useUpdateQuotation } from "@/hooks/useQuotations";
 import { formatZMW } from "@/lib/currency";
 import { CustomerPicker } from "@/components/crm/CustomerPicker";
+import { ProjectPicker } from "@/components/projects/ProjectPicker";
 import { useTaxSettings } from "@/hooks/useTaxSettings";
 import { currentVatRate, vatSelectOptions } from "@/lib/document-tax";
 
@@ -16,6 +17,7 @@ interface QuotationFormProps {
   editData?: {
     id: string;
     company_id?: string;
+    project_id?: string;
     valid_until?: string;
     tax_rate?: number;
     status?: string;
@@ -27,6 +29,8 @@ interface QuotationFormProps {
       unit_price: number;
     }>;
   } | null;
+  initialCompanyId?: string;
+  initialNotes?: string;
 }
 
 interface LineItem {
@@ -35,17 +39,18 @@ interface LineItem {
   unit_price: number;
 }
 
-export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
+export function QuotationForm({ onSuccess, editData, initialCompanyId, initialNotes }: QuotationFormProps) {
   const createQuotation = useCreateQuotation();
   const updateQuotation = useUpdateQuotation();
   const { settings: tax } = useTaxSettings();
   const vatRate = currentVatRate(tax);
 
   const [form, setForm] = useState({
-    company_id: "",
+    company_id: initialCompanyId || "",
+    project_id: "",
     valid_until: "",
     tax_rate: String(vatRate),
-    notes: "",
+    notes: initialNotes || "",
     terms: "1. Quotation valid for 30 days\n2. 50% deposit required to commence work\n3. Balance due on completion",
   });
 
@@ -59,6 +64,7 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
       const rate = isDraft ? vatRate : Number(editData.tax_rate ?? vatRate);
       setForm({
         company_id: editData.company_id || "",
+        project_id: editData.project_id || "",
         valid_until: editData.valid_until || "",
         tax_rate: String(rate),
         notes: editData.notes || "",
@@ -73,8 +79,13 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
       }
       return;
     }
-    setForm((current) => ({ ...current, tax_rate: String(vatRate) }));
-  }, [editData, vatRate]);
+    setForm((current) => ({
+      ...current,
+      tax_rate: String(vatRate),
+      company_id: initialCompanyId || current.company_id,
+      notes: initialNotes || current.notes,
+    }));
+  }, [editData, vatRate, initialCompanyId, initialNotes]);
 
   const applyCurrentVat = () => setForm((current) => ({ ...current, tax_rate: String(vatRate) }));
 
@@ -111,6 +122,7 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
     const payload = {
       ...(isEditing && { id: editData.id }),
       company_id: form.company_id || undefined,
+      project_id: form.project_id || undefined,
       valid_until: form.valid_until || undefined,
       tax_rate: Number(form.tax_rate),
       notes: form.notes || undefined,
@@ -125,7 +137,10 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <CustomerPicker value={form.company_id} onChange={(company_id) => setForm({ ...form, company_id })} />
+        <CustomerPicker
+          value={form.company_id}
+          onChange={(company_id) => setForm({ ...form, company_id, project_id: "" })}
+        />
         <div className="space-y-2">
           <Label>Valid Until</Label>
           <Input
@@ -134,6 +149,11 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
             onChange={(e) => setForm({ ...form, valid_until: e.target.value })}
           />
         </div>
+        <ProjectPicker
+          value={form.project_id}
+          companyId={form.company_id}
+          onChange={(project_id) => setForm({ ...form, project_id })}
+        />
       </div>
 
       <div className="flex flex-wrap items-end gap-3">

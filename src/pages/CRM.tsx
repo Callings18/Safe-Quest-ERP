@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useLeads, useLeadStats, useCompanies, useContacts, useCreateLead, useCreateContact, useUpdateLeadStatus } from "@/hooks/useCRM";
-import { Loader2, Search, Plus, Filter, MoreHorizontal, Mail, Building2, User } from "lucide-react";
+import { useLeads, useLeadStats, useCompanies, useContacts, useCreateLead, useCreateContact, useUpdateLeadStatus, useConvertLeadToQuotation } from "@/hooks/useCRM";
+import { Loader2, Search, Plus, Filter, MoreHorizontal, Mail, Building2, User, FileText } from "lucide-react";
 import { formatZMW } from "@/lib/currency";
 import { CustomerFormDialog } from "@/components/crm/CustomerFormDialog";
 
@@ -31,6 +31,7 @@ export default function CRM() {
   const createLead = useCreateLead();
   const createContact = useCreateContact();
   const updateLeadStatus = useUpdateLeadStatus();
+  const convertLead = useConvertLeadToQuotation();
   const [searchTerm, setSearchTerm] = useState("");
   const [contactDialog, setContactDialog] = useState(false);
   const [contactForm, setContactForm] = useState({ first_name: "", last_name: "", email: "", phone: "", company_id: "" });
@@ -195,6 +196,14 @@ export default function CRM() {
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    disabled={convertLead.isPending || !lead.company_id}
+                                    title={!lead.company_id ? "Link a customer to this lead first" : undefined}
+                                    onClick={() => convertLead.mutate(lead.id)}
+                                  >
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    Create quotation
+                                  </DropdownMenuItem>
                                   {(["contacted", "qualified", "proposal", "negotiation", "won", "lost"] as const).map((s) => (
                                     <DropdownMenuItem key={s} onClick={() => updateLeadStatus.mutate({ id: lead.id, status: s })}>
                                       Mark {s}

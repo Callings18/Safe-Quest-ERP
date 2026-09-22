@@ -121,6 +121,7 @@ export function useUpdateQuotation() {
     mutationFn: async ({ id, ...quotation }: {
       id: string;
       company_id?: string;
+      project_id?: string;
       valid_until?: string;
       notes?: string;
       terms?: string;
@@ -145,6 +146,7 @@ export function useUpdateQuotation() {
         .from("quotations")
         .update({
           company_id: quotation.company_id,
+          project_id: quotation.project_id || null,
           valid_until: quotation.valid_until,
           notes: quotation.notes,
           terms: quotation.terms,

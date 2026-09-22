@@ -89,7 +89,15 @@ export default function Invoicing() {
   const handleEditInvoice = async (inv: any) => {
     const { data: items } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id);
     setEditInvoice({ ...inv, invoice_items: items || [] });
+    setProformaDialogOpen(false);
     setInvoiceDialogOpen(true);
+  };
+
+  const handleEditProforma = async (inv: any) => {
+    const { data: items } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id);
+    setEditInvoice({ ...inv, invoice_items: items || [] });
+    setInvoiceDialogOpen(false);
+    setProformaDialogOpen(true);
   };
 
   const handleViewDocument = async (type: "invoice" | "quotation" | "delivery_note" | "receipt" | "proforma", doc: any) => {
@@ -206,7 +214,7 @@ export default function Invoicing() {
                   <p className="text-sm text-muted-foreground">Deposit requests and provisional pricing. Convert to a tax invoice when ready.</p>
                 </div>
                 <Dialog open={proformaDialogOpen} onOpenChange={(open) => { if (!open) closeInvoiceDialog(); else setProformaDialogOpen(true); }}>
-                  <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Proforma</Button></DialogTrigger>
+                  <DialogTrigger asChild><Button size="sm" onClick={() => setEditInvoice(null)}><Plus className="h-4 w-4 mr-1" /> New Proforma</Button></DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader><DialogTitle>{editInvoice?.is_proforma ? "Edit Proforma" : "Create Proforma"}</DialogTitle></DialogHeader>
                     <InvoiceForm onSuccess={closeInvoiceDialog} editData={editInvoice} defaultProforma />
@@ -223,7 +231,7 @@ export default function Invoicing() {
                       <td className="p-3"><Badge variant="outline" className={invoiceStatusConfig[inv.status || "draft"]?.color}>{invoiceStatusConfig[inv.status || "draft"]?.label}</Badge></td>
                       <td className="p-3"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleViewDocument("proforma", inv)}><Eye className="h-4 w-4 mr-2" />View/Print</DropdownMenuItem>
-                        {inv.status === "draft" && <DropdownMenuItem onClick={async () => { await handleEditInvoice(inv); setProformaDialogOpen(true); }}><Pencil className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>}
+                        {inv.status === "draft" && <DropdownMenuItem onClick={() => handleEditProforma(inv)}><Pencil className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>}
                         {inv.status === "draft" && <DropdownMenuItem onClick={() => updateInvoiceStatus.mutate({ id: inv.id, status: "sent" })}><Send className="h-4 w-4 mr-2" />Mark Sent</DropdownMenuItem>}
                         {inv.status !== "cancelled" && <DropdownMenuItem onClick={() => convertProforma.mutate(inv.id)}><ArrowRight className="h-4 w-4 mr-2" />Convert to Tax Invoice</DropdownMenuItem>}
                       </DropdownMenuContent></DropdownMenu></td>
@@ -238,7 +246,7 @@ export default function Invoicing() {
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold">Tax invoices</h3>
                 <Dialog open={invoiceDialogOpen} onOpenChange={(open) => { if (!open) closeInvoiceDialog(); else setInvoiceDialogOpen(true); }}>
-                  <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Tax Invoice</Button></DialogTrigger>
+                  <DialogTrigger asChild><Button size="sm" onClick={() => setEditInvoice(null)}><Plus className="h-4 w-4 mr-1" /> New Tax Invoice</Button></DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader><DialogTitle>{editInvoice ? "Edit Invoice" : "Create Tax Invoice"}</DialogTitle></DialogHeader>
                     <InvoiceForm onSuccess={closeInvoiceDialog} editData={editInvoice} />

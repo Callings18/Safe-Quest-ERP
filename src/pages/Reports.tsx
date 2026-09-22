@@ -1,12 +1,15 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useInvoiceStats } from "@/hooks/useInvoices";
 import { useLoanStats } from "@/hooks/useLoans";
 import { useProjectStats } from "@/hooks/useProjects";
 import { useEmployeeStats } from "@/hooks/useHR";
 import { useProcurementStats } from "@/hooks/useProcurement";
 import { useAssetStats } from "@/hooks/useAssets";
+import { useAgedReceivables, useVatSummary } from "@/hooks/useAccounting";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { Wallet, Users, FolderKanban, Landmark, Truck, ShoppingCart } from "lucide-react";
 import { formatZMW, formatZMWAxis } from "@/lib/currency";
@@ -20,6 +23,8 @@ export default function Reports() {
   const { data: employeeStats } = useEmployeeStats();
   const { data: procurementStats } = useProcurementStats();
   const { data: assetStats } = useAssetStats();
+  const { data: aged } = useAgedReceivables();
+  const { data: vat } = useVatSummary();
 
   const revenueData = [
     { name: "Invoiced", value: invoiceStats?.totalInvoiced || 0 },
@@ -38,6 +43,17 @@ export default function Reports() {
     { name: "Disbursed", value: loanStats?.totalDisbursed || 0 },
     { name: "Outstanding", value: loanStats?.outstanding || 0 },
     { name: "Collected", value: loanStats?.collected || 0 },
+  ];
+
+  const arBuckets = ["current", "1-30", "31-60", "61-90", "90+"].map((bucket) => ({
+    name: bucket,
+    value: (aged || []).filter((r: any) => r.bucket === bucket).reduce((s: number, r: any) => s + (Number(r.balance) || 0), 0),
+  }));
+
+  const vatData = [
+    { name: "Output VAT", value: vat?.outputVat || 0 },
+    { name: "Input VAT", value: vat?.inputVat || 0 },
+    { name: "Net payable", value: Math.max(0, vat?.netVat || 0) },
   ];
 
   const overviewCards = [
@@ -70,8 +86,10 @@ export default function Reports() {
         </div>
 
         <Tabs defaultValue="financial">
-          <TabsList>
+          <TabsList className="flex flex-wrap h-auto gap-1">
             <TabsTrigger value="financial">Financial</TabsTrigger>
+            <TabsTrigger value="receivables">Aged AR</TabsTrigger>
+            <TabsTrigger value="vat">VAT</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
             <TabsTrigger value="loans">Loans</TabsTrigger>
           </TabsList>
@@ -89,6 +107,95 @@ export default function Reports() {
                     <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="receivables" className="space-y-4">
+            <Card>
+              <CardHeader><CardTitle>Aged receivables by bucket</CardTitle></CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={arBuckets}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={v => formatZMWAxis(v)} />
+                    <Tooltip formatter={(v: number) => formatZMW(v)} />
+                    <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-base">Outstanding invoices</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Invoice</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Due</TableHead>
+                      <TableHead>Bucket</TableHead>
+                      <TableHead className="text-right">Balance</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(aged || []).map((r: any) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">{r.invoice_number}</TableCell>
+                        <TableCell>{r.customer}</TableCell>
+                        <TableCell>{r.due_date || r.issue_date}</TableCell>
+                        <TableCell><Badge variant="outline">{r.bucket}</Badge></TableCell>
+                        <TableCell className="text-right font-semibold">{formatZMW(r.balance)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {!aged?.length && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">No outstanding invoices</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="vat" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground">Output VAT (sales)</p>
+                  <p className="text-2xl font-bold">{formatZMW(vat?.outputVat || 0)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground">Input VAT (purchases)</p>
+                  <p className="text-2xl font-bold">{formatZMW(vat?.inputVat || 0)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <p className="text-sm text-muted-foreground">Net payable to ZRA</p>
+                  <p className="text-2xl font-bold">{formatZMW(vat?.netVat || 0)}</p>
+                </CardContent>
+              </Card>
+            </div>
+            <Card>
+              <CardHeader><CardTitle>VAT summary</CardTitle></CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={vatData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={v => formatZMWAxis(v)} />
+                    <Tooltip formatter={(v: number) => formatZMW(v)} />
+                    <Bar dataKey="value" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <p className="text-sm text-muted-foreground mt-3">
+                  Output VAT from sent/paid tax invoices; input VAT from expenses. Remit using ZRA VAT bank in Settings → Tax.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>

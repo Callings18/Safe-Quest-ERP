@@ -9,6 +9,7 @@ import { Plus, Trash2, Loader2, RefreshCw } from "lucide-react";
 import { useCreateInvoice, useUpdateInvoice } from "@/hooks/useInvoices";
 import { formatZMW } from "@/lib/currency";
 import { CustomerPicker } from "@/components/crm/CustomerPicker";
+import { ProjectPicker } from "@/components/projects/ProjectPicker";
 import { useTaxSettings } from "@/hooks/useTaxSettings";
 import { currentVatRate, vatSelectOptions } from "@/lib/document-tax";
 
@@ -18,6 +19,7 @@ interface InvoiceFormProps {
   editData?: {
     id: string;
     company_id?: string;
+    project_id?: string;
     due_date?: string;
     notes?: string;
     is_proforma?: boolean;
@@ -46,6 +48,7 @@ export function InvoiceForm({ onSuccess, editData, defaultProforma = false }: In
 
   const [form, setForm] = useState({
     company_id: "",
+    project_id: "",
     due_date: "",
     notes: "",
     is_proforma: defaultProforma,
@@ -60,6 +63,7 @@ export function InvoiceForm({ onSuccess, editData, defaultProforma = false }: In
       const isDraft = !editData.status || editData.status === "draft";
       setForm({
         company_id: editData.company_id || "",
+        project_id: editData.project_id || "",
         due_date: editData.due_date || "",
         notes: editData.notes || "",
         is_proforma: !!editData.is_proforma,
@@ -115,6 +119,7 @@ export function InvoiceForm({ onSuccess, editData, defaultProforma = false }: In
     const payload = {
       ...(isEditing && { id: editData.id }),
       company_id: form.company_id || undefined,
+      project_id: form.project_id || undefined,
       due_date: form.due_date || undefined,
       notes: form.notes || undefined,
       is_proforma: form.is_proforma,
@@ -128,7 +133,10 @@ export function InvoiceForm({ onSuccess, editData, defaultProforma = false }: In
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <CustomerPicker value={form.company_id} onChange={(company_id) => setForm({ ...form, company_id })} />
+        <CustomerPicker
+          value={form.company_id}
+          onChange={(company_id) => setForm({ ...form, company_id, project_id: "" })}
+        />
         <div className="space-y-2">
           <Label>Due Date</Label>
           <Input
@@ -137,6 +145,11 @@ export function InvoiceForm({ onSuccess, editData, defaultProforma = false }: In
             onChange={(e) => setForm({ ...form, due_date: e.target.value })}
           />
         </div>
+        <ProjectPicker
+          value={form.project_id}
+          companyId={form.company_id}
+          onChange={(project_id) => setForm({ ...form, project_id })}
+        />
       </div>
 
       <div className="flex items-center justify-between rounded-lg border p-3">

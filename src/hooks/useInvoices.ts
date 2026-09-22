@@ -229,6 +229,7 @@ export function useUpdateInvoice() {
     }: {
       id: string;
       company_id?: string;
+      project_id?: string;
       due_date?: string;
       notes?: string;
       is_proforma?: boolean;
@@ -245,6 +246,7 @@ export function useUpdateInvoice() {
         .from("invoices")
         .update({
           company_id: invoice.company_id,
+          project_id: invoice.project_id || null,
           due_date: invoice.due_date,
           notes: invoice.notes,
           subtotal: totals.subtotal,
@@ -261,6 +263,7 @@ export function useUpdateInvoice() {
           .from("invoices")
           .update({
             company_id: invoice.company_id,
+            project_id: invoice.project_id || null,
             due_date: invoice.due_date,
             notes: invoice.notes,
             subtotal: totals.subtotal,
