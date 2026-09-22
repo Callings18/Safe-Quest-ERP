@@ -5,7 +5,7 @@ import { resolveDocumentBrand, SAFEQUEST_BRAND, amountInWords, type CompanyBrand
 import { LetterheadPage } from "@/components/documents/LetterheadPage";
 
 interface DocumentPreviewProps {
-  type: "invoice" | "quotation" | "delivery_note" | "receipt";
+  type: "invoice" | "quotation" | "delivery_note" | "receipt" | "proforma";
   document: any;
   items: any[];
   template?: InvoiceTemplate | null;
@@ -20,20 +20,21 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
     const solidTable = t.table_style === "solid";
 
     const typeLabels = {
-      invoice: "INVOICE",
+      invoice: "TAX INVOICE",
+      proforma: "PROFORMA INVOICE",
       quotation: "QUOTATION",
       delivery_note: "DELIVERY NOTE",
       receipt: "RECEIPT",
     };
 
     const documentNumber =
-      type === "invoice" ? document.invoice_number :
+      type === "invoice" || type === "proforma" || type === "receipt" ? document.invoice_number :
       type === "quotation" ? document.quotation_number :
       type === "delivery_note" ? document.delivery_number :
       `RCP-${document.id?.substring(0, 8).toUpperCase()}`;
 
     const showMoney = type !== "delivery_note";
-    const showBank = t.show_bank_details && (type === "invoice" || type === "quotation" || type === "receipt");
+    const showBank = t.show_bank_details && (type === "invoice" || type === "proforma" || type === "quotation" || type === "receipt");
     const headerCell = solidTable
       ? { textAlign: "left" as const, backgroundColor: accent, color: "#fff", padding: "7px 6px" }
       : { textAlign: "left" as const, borderBottom: `2px solid ${accent}`, padding: "6px 4px" };
@@ -138,6 +139,12 @@ export const DocumentPreview = forwardRef<HTMLDivElement, DocumentPreviewProps>(
                   <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
                     <span>VAT{document.tax_rate != null ? ` (${document.tax_rate}%)` : ""}:</span>
                     <span>{formatZMW(document.tax_amount)}</span>
+                  </div>
+                )}
+                {Number(document.tax_amount) === 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
+                    <span>VAT:</span>
+                    <span>{formatZMW(0)} {document.tax_rate === 0 ? "(zero-rated / off)" : ""}</span>
                   </div>
                 )}
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>

@@ -1434,6 +1434,7 @@ export type Database = {
           due_date: string | null
           id: string
           invoice_number: string
+          is_proforma: boolean
           issue_date: string | null
           notes: string | null
           project_id: string | null
@@ -1457,6 +1458,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           invoice_number: string
+          is_proforma?: boolean
           issue_date?: string | null
           notes?: string | null
           project_id?: string | null
@@ -1480,6 +1482,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           invoice_number?: string
+          is_proforma?: boolean
           issue_date?: string | null
           notes?: string | null
           project_id?: string | null

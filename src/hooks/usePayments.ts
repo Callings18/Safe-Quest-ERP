@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { postPaymentToLedger } from "@/lib/bookkeeping";
 
 export function usePayments() {
   return useQuery({
@@ -45,40 +46,72 @@ export function useRecordPayment() {
       notes?: string;
       payment_date?: string;
     }) => {
+      const paymentDate = payment.payment_date || new Date().toISOString().split("T")[0];
+      const { data: invoiceMeta } = await supabase
+        .from("invoices")
+        .select("invoice_number, total, amount_paid, is_proforma")
+        .eq("id", payment.invoice_id)
+        .single();
+
       const { error: payError } = await supabase.rpc("record_invoice_payment", {
         p_invoice_id: payment.invoice_id,
         p_amount: payment.amount,
         p_payment_method: payment.payment_method as "cash" | "bank_transfer" | "mobile_money" | "cheque" | "card",
         p_reference: payment.reference ?? null,
         p_notes: payment.notes ?? null,
-        p_payment_date: payment.payment_date || new Date().toISOString().split("T")[0],
+        p_payment_date: paymentDate,
       });
 
-      if (!payError) return { ok: true };
+      let paymentId: string | null = null;
 
-      const { data: invoice, error: invError } = await supabase
-        .from("invoices")
-        .select("total, amount_paid")
-        .eq("id", payment.invoice_id)
-        .single();
-      if (invError) throw payError;
+      if (!payError) {
+        const { data: latest } = await supabase
+          .from("payments")
+          .select("id")
+          .eq("invoice_id", payment.invoice_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        paymentId = latest?.id || null;
+      } else {
+        if (!invoiceMeta) throw payError;
 
-      const { error: insertErr } = await supabase.from("payments").insert({
-        invoice_id: payment.invoice_id,
-        amount: payment.amount,
-        payment_method: payment.payment_method as "cash" | "bank_transfer" | "mobile_money" | "cheque" | "card",
-        reference: payment.reference,
-        notes: payment.notes,
-        payment_date: payment.payment_date || new Date().toISOString().split("T")[0],
-      });
-      if (insertErr) throw insertErr;
+        const { data: inserted, error: insertErr } = await supabase
+          .from("payments")
+          .insert({
+            invoice_id: payment.invoice_id,
+            amount: payment.amount,
+            payment_method: payment.payment_method as "cash" | "bank_transfer" | "mobile_money" | "cheque" | "card",
+            reference: payment.reference,
+            notes: payment.notes,
+            payment_date: paymentDate,
+          })
+          .select("id")
+          .single();
+        if (insertErr) throw insertErr;
+        paymentId = inserted.id;
 
-      const newAmountPaid = (Number(invoice.amount_paid) || 0) + payment.amount;
-      const total = Number(invoice.total) || 0;
-      await supabase
-        .from("invoices")
-        .update({ amount_paid: newAmountPaid, status: newAmountPaid >= total ? "paid" : "partial" })
-        .eq("id", payment.invoice_id);
+        const newAmountPaid = (Number(invoiceMeta.amount_paid) || 0) + payment.amount;
+        const total = Number(invoiceMeta.total) || 0;
+        await supabase
+          .from("invoices")
+          .update({ amount_paid: newAmountPaid, status: newAmountPaid >= total ? "paid" : "partial" })
+          .eq("id", payment.invoice_id);
+      }
+
+      if (paymentId && !(invoiceMeta as { is_proforma?: boolean } | null)?.is_proforma) {
+        try {
+          await postPaymentToLedger({
+            id: paymentId,
+            amount: payment.amount,
+            payment_date: paymentDate,
+            reference: payment.reference,
+            invoice_number: invoiceMeta?.invoice_number,
+          });
+        } catch (e) {
+          console.warn("Payment ledger post skipped:", e);
+        }
+      }
 
       return { ok: true };
     },
@@ -86,6 +119,8 @@ export function useRecordPayment() {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice_stats"] });
+      queryClient.invalidateQueries({ queryKey: ["journal_entries"] });
+      queryClient.invalidateQueries({ queryKey: ["finance_stats"] });
       toast.success("Payment recorded");
     },
     onError: (error) => {

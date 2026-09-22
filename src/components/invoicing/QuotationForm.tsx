@@ -4,12 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, RefreshCw } from "lucide-react";
 import { useCreateQuotation, useUpdateQuotation } from "@/hooks/useQuotations";
 import { formatZMW } from "@/lib/currency";
 import { CustomerPicker } from "@/components/crm/CustomerPicker";
 import { useTaxSettings } from "@/hooks/useTaxSettings";
-import { effectiveVatRate } from "@/lib/zambia-tax";
+import { currentVatRate, vatSelectOptions } from "@/lib/document-tax";
 
 interface QuotationFormProps {
   onSuccess: () => void;
@@ -18,6 +18,7 @@ interface QuotationFormProps {
     company_id?: string;
     valid_until?: string;
     tax_rate?: number;
+    status?: string;
     notes?: string;
     terms?: string;
     quotation_items?: Array<{
@@ -38,12 +39,12 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
   const createQuotation = useCreateQuotation();
   const updateQuotation = useUpdateQuotation();
   const { settings: tax } = useTaxSettings();
-  const vatRate = effectiveVatRate(tax);
+  const vatRate = currentVatRate(tax);
 
   const [form, setForm] = useState({
     company_id: "",
     valid_until: "",
-    tax_rate: "16",
+    tax_rate: String(vatRate),
     notes: "",
     terms: "1. Quotation valid for 30 days\n2. 50% deposit required to commence work\n3. Balance due on completion",
   });
@@ -54,15 +55,17 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
 
   useEffect(() => {
     if (editData) {
+      const isDraft = !editData.status || editData.status === "draft";
+      const rate = isDraft ? vatRate : Number(editData.tax_rate ?? vatRate);
       setForm({
         company_id: editData.company_id || "",
         valid_until: editData.valid_until || "",
-        tax_rate: String(editData.tax_rate ?? vatRate),
+        tax_rate: String(rate),
         notes: editData.notes || "",
         terms: editData.terms || "",
       });
       if (editData.quotation_items?.length) {
-        setItems(editData.quotation_items.map(item => ({
+        setItems(editData.quotation_items.map((item) => ({
           description: item.description,
           quantity: Number(item.quantity),
           unit_price: Number(item.unit_price),
@@ -72,6 +75,8 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
     }
     setForm((current) => ({ ...current, tax_rate: String(vatRate) }));
   }, [editData, vatRate]);
+
+  const applyCurrentVat = () => setForm((current) => ({ ...current, tax_rate: String(vatRate) }));
 
   const addItem = () => {
     setItems([...items, { description: "", quantity: 1, unit_price: 0 }]);
@@ -95,14 +100,13 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
 
   const isEditing = !!editData?.id;
   const mutation = isEditing ? updateQuotation : createQuotation;
+  const rateOptions = vatSelectOptions(tax, form.tax_rate);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const validItems = items.filter(item => item.description && item.unit_price > 0);
-    if (validItems.length === 0) {
-      return;
-    }
+
+    const validItems = items.filter((item) => item.description && item.unit_price > 0);
+    if (validItems.length === 0) return;
 
     const payload = {
       ...(isEditing && { id: editData.id }),
@@ -132,20 +136,30 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>VAT Rate (%)</Label>
-        <Select value={form.tax_rate} onValueChange={(v) => setForm({ ...form, tax_rate: v })}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">0% (no VAT)</SelectItem>
-            {tax.vat_enabled && (
-              <SelectItem value={String(tax.vat_rate)}>{tax.vat_rate}%</SelectItem>
-            )}
-            {tax.vat_enabled && tax.vat_rate !== 16 && <SelectItem value="16">16%</SelectItem>}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-2">
+          <Label>VAT Rate (%)</Label>
+          <Select value={form.tax_rate} onValueChange={(v) => setForm({ ...form, tax_rate: v })}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {rateOptions.map((rate) => (
+                <SelectItem key={rate} value={String(rate)}>
+                  {rate === 0 ? "0% (no VAT)" : `${rate}%`}
+                  {tax.vat_enabled && rate === tax.vat_rate ? " — company setting" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button type="button" variant="outline" size="sm" className="gap-1" onClick={applyCurrentVat}>
+          <RefreshCw className="h-3.5 w-3.5" />
+          Use tax settings ({vatRate}%)
+        </Button>
+        {!tax.vat_enabled && (
+          <p className="text-xs text-muted-foreground pb-2">VAT is disabled in Settings → Tax. Documents default to 0%.</p>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -186,7 +200,7 @@ export function QuotationForm({ onSuccess, editData }: QuotationFormProps) {
                 />
               </div>
               <div className="w-28 text-right pt-2 font-medium">
-                {formatZMW((item.quantity * item.unit_price))}
+                {formatZMW(item.quantity * item.unit_price * (1 + Number(form.tax_rate) / 100))}
               </div>
               <Button
                 type="button"

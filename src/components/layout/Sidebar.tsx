@@ -65,7 +65,7 @@ const navGroups: { id: string; label: string; items: NavItemDef[] }[] = [
     id: "finance",
     label: "Finance",
     items: [
-      { icon: BookOpen, label: "Accounting", path: "/accounting" },
+      { icon: BookOpen, label: "Bookkeeping", path: "/accounting" },
       { icon: Landmark, label: "Loans", path: "/loans" },
       { icon: Calculator, label: "Payroll", path: "/payroll" },
       { icon: BarChart3, label: "Reports", path: "/reports" },

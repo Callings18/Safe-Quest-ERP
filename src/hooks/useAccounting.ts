@@ -103,22 +103,96 @@ export function useUpdateExpenseStatus() {
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "pending" | "approved" | "rejected" | "paid" }) => {
       const { data: user } = await supabase.auth.getUser();
-      const { error } = await supabase
+      const { data: expense, error } = await supabase
         .from("expenses")
         .update({
           status,
           approved_by: status === "approved" || status === "paid" ? user.user?.id : null,
           approved_at: status === "approved" || status === "paid" ? new Date().toISOString() : null,
         })
-        .eq("id", id);
+        .eq("id", id)
+        .select("*")
+        .single();
       if (error) throw error;
+
+      if (status === "paid" && expense) {
+        try {
+          const { postExpenseToLedger } = await import("@/lib/bookkeeping");
+          await postExpenseToLedger(expense as any);
+        } catch (e) {
+          console.warn("Expense ledger post skipped:", e);
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
       qc.invalidateQueries({ queryKey: ["finance_stats"] });
+      qc.invalidateQueries({ queryKey: ["journal_entries"] });
       toast.success("Expense updated");
     },
     onError: (e: Error) => toast.error("Failed: " + e.message),
+  });
+}
+
+export function useAgedReceivables() {
+  return useQuery({
+    queryKey: ["aged_receivables"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("id, invoice_number, issue_date, due_date, total, amount_paid, status, companies(name), is_proforma")
+        .neq("status", "cancelled")
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      const today = new Date();
+      return (data || [])
+        .filter((inv: any) => !inv.is_proforma && inv.status !== "draft")
+        .map((inv: any) => {
+          const balance = Math.max(0, (Number(inv.total) || 0) - (Number(inv.amount_paid) || 0));
+          const due = inv.due_date ? new Date(inv.due_date) : new Date(inv.issue_date);
+          const days = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+          let bucket = "current";
+          if (balance > 0 && days > 90) bucket = "90+";
+          else if (balance > 0 && days > 60) bucket = "61-90";
+          else if (balance > 0 && days > 30) bucket = "31-60";
+          else if (balance > 0 && days > 0) bucket = "1-30";
+          return {
+            ...inv,
+            balance,
+            days_overdue: Math.max(0, days),
+            bucket,
+            customer: inv.companies?.name || "—",
+          };
+        })
+        .filter((r) => r.balance > 0.01);
+    },
+  });
+}
+
+export function useVatSummary() {
+  return useQuery({
+    queryKey: ["vat_summary"],
+    queryFn: async () => {
+      const [{ data: invoices }, { data: expenses }] = await Promise.all([
+        supabase.from("invoices").select("tax_amount, status, is_proforma, issue_date"),
+        supabase.from("expenses").select("tax_amount, status, expense_date"),
+      ]);
+      let outputVat = 0;
+      let inputVat = 0;
+      invoices?.forEach((inv: any) => {
+        if (inv.is_proforma || inv.status === "draft" || inv.status === "cancelled") return;
+        outputVat += Number(inv.tax_amount) || 0;
+      });
+      expenses?.forEach((exp) => {
+        if (exp.status === "rejected") return;
+        inputVat += Number(exp.tax_amount) || 0;
+      });
+      return {
+        outputVat: Math.round(outputVat * 100) / 100,
+        inputVat: Math.round(inputVat * 100) / 100,
+        netVat: Math.round((outputVat - inputVat) * 100) / 100,
+      };
+    },
   });
 }
 
@@ -127,7 +201,7 @@ export function useFinanceStats() {
     queryKey: ["finance_stats"],
     queryFn: async () => {
       const [{ data: invoices, error: iErr }, { data: expenses, error: eErr }] = await Promise.all([
-        supabase.from("invoices").select("total, amount_paid, status, issue_date"),
+        supabase.from("invoices").select("total, amount_paid, status, issue_date, is_proforma"),
         supabase.from("expenses").select("total, status, expense_date"),
       ]);
       if (iErr) throw iErr;
@@ -138,8 +212,8 @@ export function useFinanceStats() {
 
       let revenue = 0;
       let received = 0;
-      invoices?.forEach((i) => {
-        if (i.status === "cancelled" || i.status === "draft") return;
+      invoices?.forEach((i: any) => {
+        if (i.status === "cancelled" || i.status === "draft" || i.is_proforma) return;
         revenue += Number(i.total) || 0;
         received += Number(i.amount_paid) || 0;
       });

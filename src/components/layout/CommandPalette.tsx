@@ -17,7 +17,7 @@ const pages = [
   { label: "Inventory", path: "/inventory", group: "Operations" },
   { label: "Procurement", path: "/procurement", group: "Operations" },
   { label: "Assets", path: "/assets", group: "Operations" },
-  { label: "Accounting", path: "/accounting", group: "Finance" },
+  { label: "Bookkeeping", path: "/accounting", group: "Finance" },
   { label: "Loans", path: "/loans", group: "Finance" },
   { label: "Payroll", path: "/payroll", group: "Finance" },
   { label: "Reports", path: "/reports", group: "Finance" },

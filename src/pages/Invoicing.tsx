@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { supabase } from "@/integrations/supabase/client";
-import { useInvoices, useInvoiceStats } from "@/hooks/useInvoices";
+import { useInvoices, useInvoiceStats, useUpdateInvoiceStatus, useConvertProformaToInvoice } from "@/hooks/useInvoices";
 import { useQuotations, useConvertQuotationToInvoice, useUpdateQuotationStatus } from "@/hooks/useQuotations";
 import { useDeliveryNotes, useCreateDeliveryNoteFromInvoice, useUpdateDeliveryNoteStatus } from "@/hooks/useDeliveryNotes";
 import { usePayments } from "@/hooks/usePayments";
@@ -18,8 +17,9 @@ import { InvoiceForm } from "@/components/invoicing/InvoiceForm";
 import { PaymentForm } from "@/components/invoicing/PaymentForm";
 import { TemplateForm } from "@/components/invoicing/TemplateForm";
 import { DocumentViewDialog } from "@/components/invoicing/DocumentViewDialog";
-import { Loader2, Plus, Search, FileText, Send, CheckCircle2, AlertTriangle, XCircle, Wallet, TrendingUp, Eye, MoreHorizontal, ArrowRight, Truck, Receipt, Palette, Calendar, Pencil } from "lucide-react";
+import { Loader2, Plus, Search, FileText, Send, CheckCircle2, AlertTriangle, XCircle, Wallet, TrendingUp, Eye, MoreHorizontal, ArrowRight, Truck, Receipt, Calendar, Pencil } from "lucide-react";
 import { formatZMW } from "@/lib/currency";
+import { supabase } from "@/integrations/supabase/client";
 
 const quotationStatusConfig: Record<string, { color: string; label: string }> = {
   draft: { color: "bg-muted text-muted-foreground border-border", label: "Draft" },
@@ -56,13 +56,16 @@ export default function Invoicing() {
   const { data: defaultTemplate } = useDefaultTemplate();
 
   const convertToInvoice = useConvertQuotationToInvoice();
+  const convertProforma = useConvertProformaToInvoice();
   const updateQuotationStatus = useUpdateQuotationStatus();
+  const updateInvoiceStatus = useUpdateInvoiceStatus();
   const createDeliveryNote = useCreateDeliveryNoteFromInvoice();
   const updateDeliveryStatus = useUpdateDeliveryNoteStatus();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [quotationDialogOpen, setQuotationDialogOpen] = useState(false);
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [proformaDialogOpen, setProformaDialogOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<InvoiceTemplate | null>(null);
   const deleteTemplate = useDeleteTemplate();
@@ -70,7 +73,7 @@ export default function Invoicing() {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [editQuotation, setEditQuotation] = useState<any>(null);
   const [editInvoice, setEditInvoice] = useState<any>(null);
-  const [viewDialog, setViewDialog] = useState<{ open: boolean; type: any; doc: any; items: any[] }>({ open: false, type: "invoice", doc: null, items: [] });
+  const [viewDialog, setViewDialog] = useState<{ open: boolean; type: any; doc: any; items: any[]; payments?: any[] }>({ open: false, type: "invoice", doc: null, items: [] });
 
   const handleRecordPayment = (invoice: any) => {
     setSelectedInvoice(invoice);
@@ -89,19 +92,24 @@ export default function Invoicing() {
     setInvoiceDialogOpen(true);
   };
 
-  const handleViewDocument = async (type: "invoice" | "quotation" | "delivery_note" | "receipt", doc: any) => {
+  const handleViewDocument = async (type: "invoice" | "quotation" | "delivery_note" | "receipt" | "proforma", doc: any) => {
     let items: any[] = [];
+    let paymentsList: any[] = [];
     if (type === "quotation") {
       const { data } = await supabase.from("quotation_items").select("*").eq("quotation_id", doc.id);
       items = data || [];
-    } else if (type === "invoice" || type === "receipt") {
+    } else if (type === "invoice" || type === "receipt" || type === "proforma") {
       const { data } = await supabase.from("invoice_items").select("*").eq("invoice_id", doc.id);
       items = data || [];
+      if (type === "receipt") {
+        const { data: pays } = await supabase.from("payments").select("*").eq("invoice_id", doc.id).order("payment_date", { ascending: false });
+        paymentsList = pays || [];
+      }
     } else if (type === "delivery_note") {
       const { data } = await supabase.from("delivery_note_items").select("*").eq("delivery_note_id", doc.id);
       items = data || [];
     }
-    setViewDialog({ open: true, type, doc, items });
+    setViewDialog({ open: true, type, doc, items, payments: paymentsList });
   };
 
   const closeQuotationDialog = () => {
@@ -112,13 +120,19 @@ export default function Invoicing() {
   const closeInvoiceDialog = () => {
     setInvoiceDialogOpen(false);
     setEditInvoice(null);
+    setProformaDialogOpen(false);
   };
 
   const q = searchTerm.toLowerCase();
   const filteredQuotations = quotations?.filter((qt: any) =>
     `${qt.quotation_number} ${qt.companies?.name || ""}`.toLowerCase().includes(q)
   );
-  const filteredInvoices = invoices?.filter((inv: any) =>
+  const taxInvoices = invoices?.filter((inv: any) => !inv.is_proforma) || [];
+  const proformas = invoices?.filter((inv: any) => inv.is_proforma) || [];
+  const filteredInvoices = taxInvoices.filter((inv: any) =>
+    `${inv.invoice_number} ${inv.companies?.name || ""}`.toLowerCase().includes(q)
+  );
+  const filteredProformas = proformas.filter((inv: any) =>
     `${inv.invoice_number} ${inv.companies?.name || ""}`.toLowerCase().includes(q)
   );
 
@@ -127,7 +141,7 @@ export default function Invoicing() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Invoicing & Documents</h1>
-          <p className="text-muted-foreground">Quotations, invoices, delivery notes & receipts</p>
+          <p className="text-muted-foreground">Quotations, proformas, tax invoices, delivery notes & receipts</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
@@ -139,7 +153,14 @@ export default function Invoicing() {
 
         <Tabs defaultValue="quotations" className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <TabsList><TabsTrigger value="quotations">Quotations</TabsTrigger><TabsTrigger value="invoices">Invoices</TabsTrigger><TabsTrigger value="delivery">Delivery Notes</TabsTrigger><TabsTrigger value="payments">Payments</TabsTrigger><TabsTrigger value="templates">Templates</TabsTrigger></TabsList>
+            <TabsList className="flex flex-wrap h-auto">
+              <TabsTrigger value="quotations">Quotations</TabsTrigger>
+              <TabsTrigger value="proformas">Proformas</TabsTrigger>
+              <TabsTrigger value="invoices">Tax Invoices</TabsTrigger>
+              <TabsTrigger value="delivery">Delivery Notes</TabsTrigger>
+              <TabsTrigger value="payments">Payments</TabsTrigger>
+              <TabsTrigger value="templates">Templates</TabsTrigger>
+            </TabsList>
             <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." className="pl-9 w-64" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
           </div>
 
@@ -177,19 +198,54 @@ export default function Invoicing() {
             </CardContent></Card>
           </TabsContent>
 
+          <TabsContent value="proformas">
+            <Card><CardContent className="p-4">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="font-semibold">Proforma invoices</h3>
+                  <p className="text-sm text-muted-foreground">Deposit requests and provisional pricing. Convert to a tax invoice when ready.</p>
+                </div>
+                <Dialog open={proformaDialogOpen} onOpenChange={(open) => { if (!open) closeInvoiceDialog(); else setProformaDialogOpen(true); }}>
+                  <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Proforma</Button></DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader><DialogTitle>{editInvoice?.is_proforma ? "Edit Proforma" : "Create Proforma"}</DialogTitle></DialogHeader>
+                    <InvoiceForm onSuccess={closeInvoiceDialog} editData={editInvoice} defaultProforma />
+                  </DialogContent>
+                </Dialog>
+              </div>
+              {invoicesLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div> : !filteredProformas.length ? <div className="text-center py-12 text-muted-foreground">No proformas yet.</div> : (
+                <div className="overflow-x-auto"><table className="w-full"><thead><tr className="border-b bg-muted/50"><th className="text-left p-3 font-medium text-muted-foreground">Proforma #</th><th className="text-left p-3 font-medium text-muted-foreground">Customer</th><th className="text-right p-3 font-medium text-muted-foreground">Amount</th><th className="text-left p-3 font-medium text-muted-foreground">Status</th><th className="p-3"></th></tr></thead>
+                  <tbody>{filteredProformas.map((inv: any) => (
+                    <tr key={inv.id} className="border-b hover:bg-muted/30">
+                      <td className="p-3"><p className="font-medium text-primary cursor-pointer hover:underline" onClick={() => handleViewDocument("proforma", inv)}>{inv.invoice_number}</p></td>
+                      <td className="p-3">{inv.companies?.name || "-"}</td>
+                      <td className="p-3 text-right font-semibold">{formatZMW(inv.total)}</td>
+                      <td className="p-3"><Badge variant="outline" className={invoiceStatusConfig[inv.status || "draft"]?.color}>{invoiceStatusConfig[inv.status || "draft"]?.label}</Badge></td>
+                      <td className="p-3"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDocument("proforma", inv)}><Eye className="h-4 w-4 mr-2" />View/Print</DropdownMenuItem>
+                        {inv.status === "draft" && <DropdownMenuItem onClick={async () => { await handleEditInvoice(inv); setProformaDialogOpen(true); }}><Pencil className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>}
+                        {inv.status === "draft" && <DropdownMenuItem onClick={() => updateInvoiceStatus.mutate({ id: inv.id, status: "sent" })}><Send className="h-4 w-4 mr-2" />Mark Sent</DropdownMenuItem>}
+                        {inv.status !== "cancelled" && <DropdownMenuItem onClick={() => convertProforma.mutate(inv.id)}><ArrowRight className="h-4 w-4 mr-2" />Convert to Tax Invoice</DropdownMenuItem>}
+                      </DropdownMenuContent></DropdownMenu></td>
+                    </tr>
+                  ))}</tbody></table></div>
+              )}
+            </CardContent></Card>
+          </TabsContent>
+
           <TabsContent value="invoices">
             <Card><CardContent className="p-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold">Invoices</h3>
+                <h3 className="font-semibold">Tax invoices</h3>
                 <Dialog open={invoiceDialogOpen} onOpenChange={(open) => { if (!open) closeInvoiceDialog(); else setInvoiceDialogOpen(true); }}>
-                  <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Invoice</Button></DialogTrigger>
+                  <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Tax Invoice</Button></DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader><DialogTitle>{editInvoice ? "Edit Invoice" : "Create Invoice"}</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{editInvoice ? "Edit Invoice" : "Create Tax Invoice"}</DialogTitle></DialogHeader>
                     <InvoiceForm onSuccess={closeInvoiceDialog} editData={editInvoice} />
                   </DialogContent>
                 </Dialog>
               </div>
-              {invoicesLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div> : !filteredInvoices?.length ? <div className="text-center py-12 text-muted-foreground">No invoices yet.</div> : (
+              {invoicesLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div> : !filteredInvoices?.length ? <div className="text-center py-12 text-muted-foreground">No tax invoices yet.</div> : (
                 <div className="overflow-x-auto"><table className="w-full"><thead><tr className="border-b bg-muted/50"><th className="text-left p-3 font-medium text-muted-foreground">Invoice #</th><th className="text-left p-3 font-medium text-muted-foreground">Customer</th><th className="text-right p-3 font-medium text-muted-foreground">Amount</th><th className="text-left p-3 font-medium text-muted-foreground">Due Date</th><th className="text-left p-3 font-medium text-muted-foreground">Status</th><th className="p-3"></th></tr></thead>
                   <tbody>{filteredInvoices.map((inv: any) => (
                     <tr key={inv.id} className="border-b hover:bg-muted/30">
@@ -201,7 +257,8 @@ export default function Invoicing() {
                       <td className="p-3"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleViewDocument("invoice", inv)}><Eye className="h-4 w-4 mr-2" />View/Print</DropdownMenuItem>
                         {inv.status === "draft" && <DropdownMenuItem onClick={() => handleEditInvoice(inv)}><Pencil className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>}
-                        {inv.status !== "paid" && inv.status !== "cancelled" && <DropdownMenuItem onClick={() => handleRecordPayment(inv)}><Wallet className="h-4 w-4 mr-2" />Record Payment</DropdownMenuItem>}
+                        {inv.status === "draft" && <DropdownMenuItem onClick={() => updateInvoiceStatus.mutate({ id: inv.id, status: "sent" })}><Send className="h-4 w-4 mr-2" />Mark Sent (posts to ledger)</DropdownMenuItem>}
+                        {inv.status !== "paid" && inv.status !== "cancelled" && !inv.is_proforma && <DropdownMenuItem onClick={() => handleRecordPayment(inv)}><Wallet className="h-4 w-4 mr-2" />Record Payment</DropdownMenuItem>}
                         {inv.status !== "cancelled" && <DropdownMenuItem onClick={() => createDeliveryNote.mutate(inv.id)}><Truck className="h-4 w-4 mr-2" />Create Delivery Note</DropdownMenuItem>}
                         {(inv.status === "paid" || Number(inv.amount_paid) > 0) && <DropdownMenuItem onClick={() => handleViewDocument("receipt", inv)}><Receipt className="h-4 w-4 mr-2" />View Receipt</DropdownMenuItem>}
                       </DropdownMenuContent></DropdownMenu></td>
@@ -280,7 +337,7 @@ export default function Invoicing() {
 
         <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}><DialogContent><DialogHeader><DialogTitle>Record Payment</DialogTitle></DialogHeader>{selectedInvoice && <PaymentForm invoiceId={selectedInvoice.id} balanceDue={Number(selectedInvoice.total || 0) - Number(selectedInvoice.amount_paid || 0)} onSuccess={() => { setPaymentDialogOpen(false); setSelectedInvoice(null); }} />}</DialogContent></Dialog>
 
-        {viewDialog.doc && <DocumentViewDialog open={viewDialog.open} onOpenChange={(open) => setViewDialog({ ...viewDialog, open })} type={viewDialog.type} document={viewDialog.doc} items={viewDialog.items} template={defaultTemplate} />}
+        {viewDialog.doc && <DocumentViewDialog open={viewDialog.open} onOpenChange={(open) => setViewDialog({ ...viewDialog, open })} type={viewDialog.type} document={viewDialog.doc} items={viewDialog.items} payments={viewDialog.payments} template={defaultTemplate} />}
       </div>
     </AppLayout>
   );

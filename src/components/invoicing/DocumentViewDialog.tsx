@@ -11,7 +11,7 @@ import { resolveDocumentBrand } from "@/lib/branding";
 interface DocumentViewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: "invoice" | "quotation" | "delivery_note" | "receipt";
+  type: "invoice" | "quotation" | "delivery_note" | "receipt" | "proforma";
   document: any;
   items: any[];
   template?: InvoiceTemplate | null;
@@ -33,6 +33,7 @@ export function DocumentViewDialog({
   const branded = resolveDocumentBrand(template, company);
   const typeLabels = {
     invoice: "Invoice",
+    proforma: "Proforma Invoice",
     quotation: "Quotation",
     delivery_note: "Delivery Note",
     receipt: "Receipt",

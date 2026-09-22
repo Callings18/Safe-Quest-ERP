@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import {
   useAccounts,
+  useAgedReceivables,
   useCreateAccount,
   useCreateExpense,
   useCreateJournalEntry,
@@ -19,6 +20,7 @@ import {
   useFinanceStats,
   useJournalEntries,
   useUpdateExpenseStatus,
+  useVatSummary,
 } from "@/hooks/useAccounting";
 import { Loader2, Plus, Wallet, TrendingUp, Receipt, BookOpen } from "lucide-react";
 import type { AccountType } from "@/hooks/useAccounting";
@@ -30,6 +32,8 @@ export default function Accounting() {
   const { data: accounts } = useAccounts();
   const { data: journals, isLoading: jeLoading } = useJournalEntries();
   const { data: byCategory } = useExpenseByCategory();
+  const { data: aged } = useAgedReceivables();
+  const { data: vat } = useVatSummary();
   const createExpense = useCreateExpense();
   const updateStatus = useUpdateExpenseStatus();
   const createAccount = useCreateAccount();
@@ -60,8 +64,8 @@ export default function Accounting() {
     <AppLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Accounting</h1>
-          <p className="text-muted-foreground">Chart of accounts, expenses, and journal entries</p>
+          <h1 className="text-2xl font-bold tracking-tight">Bookkeeping</h1>
+          <p className="text-muted-foreground">Chart of accounts, expenses, journals, VAT, and receivables for SAFEQUEST (Z) LIMITED</p>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -69,7 +73,7 @@ export default function Accounting() {
             { title: "Revenue", value: formatZMW(stats?.revenue || 0), icon: TrendingUp },
             { title: "Collected", value: formatZMW(stats?.received || 0), icon: Wallet },
             { title: "Expenses", value: formatZMW(stats?.totalExpenses || 0), icon: Receipt },
-            { title: "Gross profit", value: formatZMW(stats?.grossProfit || 0), icon: BookOpen },
+            { title: "Net VAT due", value: formatZMW(vat?.netVat || 0), icon: BookOpen },
           ].map((k) => (
             <Card key={k.title}>
               <CardContent className="p-4 flex items-center gap-3">
@@ -84,8 +88,10 @@ export default function Accounting() {
         </div>
 
         <Tabs defaultValue="expenses">
-          <TabsList>
+          <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsTrigger value="receivables">Receivables</TabsTrigger>
+            <TabsTrigger value="vat">VAT (ZRA)</TabsTrigger>
             <TabsTrigger value="journals">Journals</TabsTrigger>
             <TabsTrigger value="accounts">Chart of Accounts</TabsTrigger>
           </TabsList>
@@ -180,6 +186,51 @@ export default function Accounting() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="receivables" className="space-y-4">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Aged accounts receivable</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Invoice</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Due</TableHead>
+                      <TableHead>Bucket</TableHead>
+                      <TableHead className="text-right">Balance</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(aged || []).map((r: any) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">{r.invoice_number}</TableCell>
+                        <TableCell>{r.customer}</TableCell>
+                        <TableCell>{r.due_date || r.issue_date}</TableCell>
+                        <TableCell><Badge variant="outline">{r.bucket}</Badge></TableCell>
+                        <TableCell className="text-right font-semibold">{formatZMW(r.balance)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {!aged?.length && (
+                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No outstanding invoices</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="vat" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">Output VAT (sales)</p><p className="text-2xl font-bold">{formatZMW(vat?.outputVat || 0)}</p></CardContent></Card>
+              <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">Input VAT (purchases)</p><p className="text-2xl font-bold">{formatZMW(vat?.inputVat || 0)}</p></CardContent></Card>
+              <Card><CardContent className="pt-4"><p className="text-sm text-muted-foreground">Net payable to ZRA</p><p className="text-2xl font-bold">{formatZMW(vat?.netVat || 0)}</p></CardContent></Card>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Output VAT comes from sent/paid tax invoices. Input VAT comes from expense tax amounts. Remit using the ZRA VAT bank in Settings → Tax.
+              Marking a tax invoice as <span className="font-medium">Sent</span> posts Sales + VAT Payable to the ledger automatically.
+            </p>
           </TabsContent>
 
           <TabsContent value="journals" className="space-y-4">

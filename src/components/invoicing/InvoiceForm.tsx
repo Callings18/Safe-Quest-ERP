@@ -4,20 +4,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Trash2, Loader2, RefreshCw } from "lucide-react";
 import { useCreateInvoice, useUpdateInvoice } from "@/hooks/useInvoices";
 import { formatZMW } from "@/lib/currency";
 import { CustomerPicker } from "@/components/crm/CustomerPicker";
 import { useTaxSettings } from "@/hooks/useTaxSettings";
-import { effectiveVatRate } from "@/lib/zambia-tax";
+import { currentVatRate, vatSelectOptions } from "@/lib/document-tax";
 
 interface InvoiceFormProps {
   onSuccess: () => void;
+  defaultProforma?: boolean;
   editData?: {
     id: string;
     company_id?: string;
     due_date?: string;
     notes?: string;
+    is_proforma?: boolean;
+    status?: string;
     invoice_items?: Array<{
       description: string;
       quantity: number;
@@ -34,41 +38,49 @@ interface LineItem {
   tax_rate: number;
 }
 
-export function InvoiceForm({ onSuccess, editData }: InvoiceFormProps) {
+export function InvoiceForm({ onSuccess, editData, defaultProforma = false }: InvoiceFormProps) {
   const createInvoice = useCreateInvoice();
   const updateInvoice = useUpdateInvoice();
   const { settings: tax } = useTaxSettings();
-  const vatRate = effectiveVatRate(tax);
+  const vatRate = currentVatRate(tax);
 
   const [form, setForm] = useState({
     company_id: "",
     due_date: "",
     notes: "",
+    is_proforma: defaultProforma,
   });
 
   const [items, setItems] = useState<LineItem[]>([
-    { description: "", quantity: 1, unit_price: 0, tax_rate: 16 },
+    { description: "", quantity: 1, unit_price: 0, tax_rate: vatRate },
   ]);
 
   useEffect(() => {
     if (editData) {
+      const isDraft = !editData.status || editData.status === "draft";
       setForm({
         company_id: editData.company_id || "",
         due_date: editData.due_date || "",
         notes: editData.notes || "",
+        is_proforma: !!editData.is_proforma,
       });
       if (editData.invoice_items?.length) {
-        setItems(editData.invoice_items.map(item => ({
+        setItems(editData.invoice_items.map((item) => ({
           description: item.description,
           quantity: Number(item.quantity),
           unit_price: Number(item.unit_price),
-          tax_rate: Number(item.tax_rate) || 0,
+          tax_rate: isDraft ? vatRate : (Number(item.tax_rate) || 0),
         })));
       }
       return;
     }
+    setForm((current) => ({ ...current, is_proforma: defaultProforma }));
     setItems((current) => current.map((item) => ({ ...item, tax_rate: vatRate })));
-  }, [editData, vatRate]);
+  }, [editData, vatRate, defaultProforma]);
+
+  const applyCurrentVat = () => {
+    setItems((current) => current.map((item) => ({ ...item, tax_rate: vatRate })));
+  };
 
   const addItem = () => {
     setItems([...items, { description: "", quantity: 1, unit_price: 0, tax_rate: vatRate }]);
@@ -89,23 +101,23 @@ export function InvoiceForm({ onSuccess, editData }: InvoiceFormProps) {
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
   const taxAmount = items.reduce((sum, item) => sum + item.quantity * item.unit_price * (item.tax_rate / 100), 0);
   const total = subtotal + taxAmount;
+  const dominantRate = items[0]?.tax_rate ?? vatRate;
 
   const isEditing = !!editData?.id;
   const mutation = isEditing ? updateInvoice : createInvoice;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const validItems = items.filter(item => item.description && item.unit_price > 0);
-    if (validItems.length === 0) {
-      return;
-    }
+
+    const validItems = items.filter((item) => item.description && item.unit_price > 0);
+    if (validItems.length === 0) return;
 
     const payload = {
       ...(isEditing && { id: editData.id }),
       company_id: form.company_id || undefined,
       due_date: form.due_date || undefined,
       notes: form.notes || undefined,
+      is_proforma: form.is_proforma,
       items: validItems,
     };
 
@@ -127,6 +139,27 @@ export function InvoiceForm({ onSuccess, editData }: InvoiceFormProps) {
         </div>
       </div>
 
+      <div className="flex items-center justify-between rounded-lg border p-3">
+        <div>
+          <p className="font-medium text-sm">Proforma invoice</p>
+          <p className="text-xs text-muted-foreground">Request deposit / show pricing before the tax invoice. Not posted to the ledger.</p>
+        </div>
+        <Switch
+          checked={form.is_proforma}
+          onCheckedChange={(is_proforma) => setForm({ ...form, is_proforma })}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" variant="outline" size="sm" className="gap-1" onClick={applyCurrentVat}>
+          <RefreshCw className="h-3.5 w-3.5" />
+          Use tax settings ({vatRate}% VAT)
+        </Button>
+        {!tax.vat_enabled && (
+          <span className="text-xs text-muted-foreground">VAT is off in Settings → Tax.</span>
+        )}
+      </div>
+
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label>Line Items</Label>
@@ -136,65 +169,66 @@ export function InvoiceForm({ onSuccess, editData }: InvoiceFormProps) {
         </div>
 
         <div className="space-y-3">
-          {items.map((item, index) => (
-            <div key={index} className="flex gap-2 items-start">
-              <div className="flex-1">
-                <Input
-                  placeholder="Description"
-                  value={item.description}
-                  onChange={(e) => updateItem(index, "description", e.target.value)}
-                  required
-                />
-              </div>
-              <div className="w-20">
-                <Input
-                  type="number"
-                  placeholder="Qty"
-                  value={item.quantity}
-                  onChange={(e) => updateItem(index, "quantity", Number(e.target.value))}
-                  min={1}
-                />
-              </div>
-              <div className="w-28">
-                <Input
-                  type="number"
-                  placeholder="Price"
-                  value={item.unit_price || ""}
-                  onChange={(e) => updateItem(index, "unit_price", Number(e.target.value))}
-                  min={0}
-                />
-              </div>
-              <div className="w-20">
-                <Select 
-                  value={String(item.tax_rate)} 
-                  onValueChange={(v) => updateItem(index, "tax_rate", Number(v))}
+          {items.map((item, index) => {
+            const options = vatSelectOptions(tax, item.tax_rate);
+            return (
+              <div key={index} className="flex gap-2 items-start">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Description"
+                    value={item.description}
+                    onChange={(e) => updateItem(index, "description", e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="w-20">
+                  <Input
+                    type="number"
+                    placeholder="Qty"
+                    value={item.quantity}
+                    onChange={(e) => updateItem(index, "quantity", Number(e.target.value))}
+                    min={1}
+                  />
+                </div>
+                <div className="w-28">
+                  <Input
+                    type="number"
+                    placeholder="Price"
+                    value={item.unit_price || ""}
+                    onChange={(e) => updateItem(index, "unit_price", Number(e.target.value))}
+                    min={0}
+                  />
+                </div>
+                <div className="w-24">
+                  <Select
+                    value={String(item.tax_rate)}
+                    onValueChange={(v) => updateItem(index, "tax_rate", Number(v))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {options.map((rate) => (
+                        <SelectItem key={rate} value={String(rate)}>{rate}%</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-24 text-right pt-2 font-medium">
+                  {formatZMW(item.quantity * item.unit_price * (1 + item.tax_rate / 100))}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeItem(index)}
+                  disabled={items.length === 1}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">0%</SelectItem>
-                    {tax.vat_enabled && (
-                      <SelectItem value={String(tax.vat_rate)}>{tax.vat_rate}%</SelectItem>
-                    )}
-                    {tax.vat_enabled && tax.vat_rate !== 16 && <SelectItem value="16">16%</SelectItem>}
-                  </SelectContent>
-                </Select>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
-              <div className="w-24 text-right pt-2 font-medium">
-                {formatZMW((item.quantity * item.unit_price * (1 + item.tax_rate / 100)))}
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => removeItem(index)}
-                disabled={items.length === 1}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="flex justify-end">
@@ -204,7 +238,7 @@ export function InvoiceForm({ onSuccess, editData }: InvoiceFormProps) {
               <span>{formatZMW(subtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span>{tax.vat_enabled ? `VAT (${tax.vat_rate}%):` : "VAT (off):"}</span>
+              <span>VAT ({dominantRate}%):</span>
               <span>{formatZMW(taxAmount)}</span>
             </div>
             <div className="flex justify-between font-bold text-lg border-t pt-2">
@@ -227,7 +261,9 @@ export function InvoiceForm({ onSuccess, editData }: InvoiceFormProps) {
 
       <Button type="submit" className="w-full" disabled={mutation.isPending}>
         {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-        {isEditing ? "Update Invoice" : "Create Invoice"}
+        {isEditing
+          ? form.is_proforma ? "Update Proforma" : "Update Invoice"
+          : form.is_proforma ? "Create Proforma" : "Create Invoice"}
       </Button>
     </form>
   );

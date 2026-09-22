@@ -10,10 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProjects, useProjectStats, useCreateProject } from "@/hooks/useProjects";
-import { useBOQs, useSaveBOQ, useBOQStats } from "@/hooks/useBOQ";
+import { useBOQs, useSaveBOQ, useBOQStats, useConvertBOQToQuotation } from "@/hooks/useBOQ";
 import { useProjectTypes, useCreateProjectType } from "@/hooks/useProjectTypes";
 import { CustomerPicker } from "@/components/crm/CustomerPicker";
-import { Loader2, Plus, MapPin, Calendar, Users, DollarSign, MoreHorizontal, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, Plus, MapPin, Calendar, Users, DollarSign, MoreHorizontal, Clock, CheckCircle2, AlertCircle, FileText } from "lucide-react";
 import { formatZMW } from "@/lib/currency";
 
 const statusConfig: Record<string, { color: string; icon: any }> = {
@@ -34,6 +34,7 @@ export default function Projects() {
   const { data: boqs } = useBOQs();
   const { data: boqStats } = useBOQStats();
   const saveBOQ = useSaveBOQ();
+  const convertBOQ = useConvertBOQToQuotation();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
@@ -301,7 +302,7 @@ export default function Projects() {
                   <p className="p-8 text-center text-muted-foreground">No BOQs yet.</p>
                 ) : (
                   <table className="w-full text-sm">
-                    <thead><tr className="border-b bg-muted/50"><th className="text-left p-3">Number</th><th className="text-left p-3">Title</th><th className="text-left p-3">Project</th><th className="text-right p-3">Total</th><th className="text-left p-3">Status</th></tr></thead>
+                    <thead><tr className="border-b bg-muted/50"><th className="text-left p-3">Number</th><th className="text-left p-3">Title</th><th className="text-left p-3">Project</th><th className="text-right p-3">Total</th><th className="text-left p-3">Status</th><th className="p-3"></th></tr></thead>
                     <tbody>
                       {boqs.map((b: any) => (
                         <tr key={b.id} className="border-b">
@@ -310,6 +311,21 @@ export default function Projects() {
                           <td className="p-3">{b.projects?.name || "—"}</td>
                           <td className="p-3 text-right">{formatZMW(b.total)}</td>
                           <td className="p-3"><Badge variant="outline">{b.status}</Badge></td>
+                          <td className="p-3">
+                            {!b.quotation_id && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                disabled={convertBOQ.isPending}
+                                onClick={() => convertBOQ.mutate(b.id)}
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                                Create quotation
+                              </Button>
+                            )}
+                            {b.quotation_id && <span className="text-xs text-muted-foreground">Quoted</span>}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

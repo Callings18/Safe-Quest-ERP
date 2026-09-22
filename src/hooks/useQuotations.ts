@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { nextDocumentNumber } from "@/lib/documents";
+import { lineTaxTotal } from "@/lib/document-tax";
 
 export function useQuotations() {
   return useQuery({
@@ -56,7 +57,7 @@ export function useCreateQuotation() {
       const quotation_number = await nextDocumentNumber("QT");
       
       let subtotal = 0;
-      const taxRate = quotation.tax_rate ?? 16;
+      const taxRate = Number(quotation.tax_rate ?? 0);
       
       quotation.items.forEach((item) => {
         subtotal += item.quantity * item.unit_price;
@@ -91,8 +92,8 @@ export function useCreateQuotation() {
         description: item.description,
         quantity: item.quantity,
         unit_price: item.unit_price,
-        tax_rate: item.tax_rate || 0,
-        total: item.quantity * item.unit_price,
+        tax_rate: item.tax_rate ?? taxRate,
+        total: lineTaxTotal(item.quantity, item.unit_price, item.tax_rate ?? taxRate),
       }));
 
       const { error: itemsError } = await supabase
@@ -131,7 +132,7 @@ export function useUpdateQuotation() {
       }>;
     }) => {
       let subtotal = 0;
-      const taxRate = quotation.tax_rate ?? 16;
+      const taxRate = Number(quotation.tax_rate ?? 0);
       
       quotation.items.forEach((item) => {
         subtotal += item.quantity * item.unit_price;
@@ -164,8 +165,8 @@ export function useUpdateQuotation() {
         description: item.description,
         quantity: item.quantity,
         unit_price: item.unit_price,
-        tax_rate: 0,
-        total: item.quantity * item.unit_price,
+        tax_rate: taxRate,
+        total: lineTaxTotal(item.quantity, item.unit_price, taxRate),
       }));
 
       const { error: itemsError } = await supabase
@@ -215,7 +216,8 @@ export function useConvertQuotationToInvoice() {
 
       if (qtError) throw qtError;
 
-      const invoice_number = `INV-${Date.now().toString(36).toUpperCase()}`;
+      const invoice_number = await nextDocumentNumber("INV");
+      const headerRate = Number(quotation.tax_rate) || 0;
 
       const { data: invoice, error: invError } = await supabase
         .from("invoices")
@@ -228,24 +230,28 @@ export function useConvertQuotationToInvoice() {
           notes: quotation.notes,
           terms: quotation.terms,
           subtotal: quotation.subtotal,
-          tax_rate: quotation.tax_rate,
+          tax_rate: headerRate,
           tax_amount: quotation.tax_amount,
           total: quotation.total,
           status: "draft",
-        })
+          is_proforma: false,
+        } as never)
         .select()
         .single();
 
       if (invError) throw invError;
 
-      const items = quotation.quotation_items.map((item: any) => ({
-        invoice_id: invoice.id,
-        description: item.description,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        tax_rate: item.tax_rate,
-        total: item.total,
-      }));
+      const items = quotation.quotation_items.map((item: any) => {
+        const rate = Number(item.tax_rate) || headerRate;
+        return {
+          invoice_id: invoice.id,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          tax_rate: rate,
+          total: lineTaxTotal(Number(item.quantity), Number(item.unit_price), rate),
+        };
+      });
 
       const { error: itemsError } = await supabase
         .from("invoice_items")
