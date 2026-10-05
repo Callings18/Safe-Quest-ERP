@@ -13,7 +13,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, User, Lock, Bell, Building2, Shield, LogOut, Save, Mail, Phone, Camera, FileText, Percent } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { useCompanySettings, useUpdateCompanySettings, useMyRoles, useStaffUsers, useSetUserRole } from "@/hooks/useCompanySettings";
+import { useCompanySettings, useUpdateCompanySettings, useStaffUsers, useSetUserRole } from "@/hooks/useCompanySettings";
+import { usePermissions } from "@/hooks/usePermissions";
+import { ROLE_LABELS, DEPARTMENT_BY_ROLE, roleSummary, STAFF_ROLES, type AppRole } from "@/lib/permissions";
 import { useSearchParams } from "react-router-dom";
 import { DocumentStudio } from "@/components/documents/DocumentStudio";
 import { useDefaultTemplate } from "@/hooks/useInvoiceTemplates";
@@ -24,10 +26,9 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const { data: company } = useCompanySettings();
   const updateCompany = useUpdateCompanySettings();
-  const { data: myRoles } = useMyRoles();
   const { data: staff } = useStaffUsers();
   const setRole = useSetUserRole();
-  const isAdmin = myRoles?.includes("admin");
+  const { can } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get("tab") || "profile";
   const { data: defaultTemplate } = useDefaultTemplate();
@@ -168,11 +169,13 @@ export default function Settings() {
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Documents</span>
             </TabsTrigger>
-            <TabsTrigger value="tax" className="gap-2">
-              <Percent className="h-4 w-4" />
-              <span className="hidden sm:inline">Tax</span>
-            </TabsTrigger>
-            {isAdmin && (
+            {can("settings.tax") && (
+              <TabsTrigger value="tax" className="gap-2">
+                <Percent className="h-4 w-4" />
+                <span className="hidden sm:inline">Tax</span>
+              </TabsTrigger>
+            )}
+            {can("settings.roles") && (
               <TabsTrigger value="roles" className="gap-2">
                 <Shield className="h-4 w-4" />
                 <span className="hidden sm:inline">Roles</span>
@@ -451,16 +454,41 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
+          {can("settings.tax") && (
           <TabsContent value="tax" className="space-y-6">
             <TaxSettingsPanel />
           </TabsContent>
+          )}
 
-          {isAdmin && (
+          {can("settings.roles") && (
             <TabsContent value="roles" className="space-y-6">
               <Card>
                 <CardHeader>
+                  <CardTitle>Departments & permission limits</CardTitle>
+                  <CardDescription>
+                    Each role only sees its department modules in the sidebar. CEO (admin) is super admin.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {STAFF_ROLES.filter((r) => r !== "sales").map((role) => {
+                    const summary = roleSummary(role as AppRole);
+                    return (
+                      <div key={role} className="p-4 rounded-lg border space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-medium">{ROLE_LABELS[role as AppRole]}</p>
+                          <p className="text-xs text-muted-foreground">{DEPARTMENT_BY_ROLE[role as AppRole]}</p>
+                        </div>
+                        <p className="text-sm text-success">Can: {summary.can.join(" · ")}</p>
+                        <p className="text-sm text-muted-foreground">Cannot: {summary.cannot.join(" · ")}</p>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
                   <CardTitle>Staff roles</CardTitle>
-                  <CardDescription>Assign ERP access. First registered user is admin automatically.</CardDescription>
+                  <CardDescription>Assign ERP access per person. Toggle roles on or off.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {(staff || []).map((s) => (
@@ -468,7 +496,7 @@ export default function Settings() {
                       <p className="font-medium">{s.full_name || s.email}</p>
                       <p className="text-xs text-muted-foreground">{s.email}</p>
                       <div className="flex flex-wrap gap-2">
-                        {["admin", "manager", "accountant", "sales", "technician", "loan_officer", "hr"].map((role) => {
+                        {STAFF_ROLES.map((role) => {
                           const on = s.roles.includes(role as never);
                           return (
                             <Button
@@ -477,7 +505,7 @@ export default function Settings() {
                               variant={on ? "default" : "outline"}
                               onClick={() => setRole.mutate({ userId: s.id, role, enabled: !on })}
                             >
-                              {role}
+                              {ROLE_LABELS[role] || role}
                             </Button>
                           );
                         })}

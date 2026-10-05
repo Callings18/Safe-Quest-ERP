@@ -3086,6 +3086,7 @@ export type Database = {
         | "technician"
         | "loan_officer"
         | "hr"
+        | "receptionist"
       asset_status: "active" | "inactive" | "maintenance" | "disposed" | "sold"
       attendance_status:
         | "present"
@@ -3296,6 +3297,7 @@ export const Constants = {
         "technician",
         "loan_officer",
         "hr",
+        "receptionist",
       ],
       asset_status: ["active", "inactive", "maintenance", "disposed", "sold"],
       attendance_status: [

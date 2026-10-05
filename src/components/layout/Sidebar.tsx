@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranches, useCompanySettings } from "@/hooks/useCompanySettings";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -97,9 +98,17 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
   const { user, signOut } = useAuth();
   const { data: branches } = useBranches();
   const { data: company } = useCompanySettings();
+  const { canPath, roles } = usePermissions();
   const hq = branches?.[0];
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  const visibleGroups = navGroups
+    .map((g) => ({ ...g, items: g.items.filter((i) => canPath(i.path)) }))
+    .filter((g) => g.items.length > 0);
+  const visibleBottom = bottomNavItems.filter((i) => canPath(i.path));
+  const showDashboard = canPath(dashboardItem.path);
+  const roleBadge = roles[0] ? roles.map((r) => r.replace("_", " ")).join(", ") : "Staff";
 
   useEffect(() => {
     setOpenGroups((prev) => {
@@ -215,11 +224,11 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
 
       <ScrollArea className="flex-1 px-2 py-3">
         <nav className="space-y-1">
-          <NavItem item={dashboardItem} />
+          {showDashboard && <NavItem item={dashboardItem} />}
 
           {collapsed
-            ? navGroups.flatMap((g) => g.items).map((item) => <NavItem key={item.path} item={item} />)
-            : navGroups.map((group) => {
+            ? visibleGroups.flatMap((g) => g.items).map((item) => <NavItem key={item.path} item={item} />)
+            : visibleGroups.map((group) => {
                 const isOpen = openGroups[group.id] ?? group.items.some((i) => location.pathname === i.path);
                 const groupActive = group.items.some((i) => location.pathname === i.path);
                 return (
@@ -246,7 +255,7 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
       <Separator className="bg-sidebar-border" />
 
       <div className="px-2 py-3 space-y-1">
-        {bottomNavItems.map((item) => (
+        {visibleBottom.map((item) => (
           <NavItem key={item.path} item={item} />
         ))}
 
@@ -267,7 +276,7 @@ export function Sidebar({ collapsed, onCollapsedChange }: SidebarProps) {
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">{displayName}</p>
-              <p className="text-xs text-sidebar-foreground/50 truncate">{user?.email}</p>
+              <p className="text-xs text-sidebar-foreground/50 truncate capitalize">{roleBadge}</p>
             </div>
           )}
           {!collapsed && (

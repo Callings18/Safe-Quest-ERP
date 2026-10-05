@@ -37,21 +37,21 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/document-preview" element={<DocumentPreviewPage />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/crm" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
-            <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-            <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} />
-            <Route path="/loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
-            <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
-            <Route path="/invoicing" element={<ProtectedRoute><Invoicing /></ProtectedRoute>} />
-            <Route path="/compliance" element={<ProtectedRoute><Compliance /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/procurement" element={<ProtectedRoute><Procurement /></ProtectedRoute>} />
-            <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
-            <Route path="/hr" element={<ProtectedRoute><HR /></ProtectedRoute>} />
-            <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-            <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute module="dashboard"><Index /></ProtectedRoute>} />
+            <Route path="/crm" element={<ProtectedRoute module="crm"><CRM /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute module="projects"><Projects /></ProtectedRoute>} />
+            <Route path="/payroll" element={<ProtectedRoute module="payroll"><Payroll /></ProtectedRoute>} />
+            <Route path="/loans" element={<ProtectedRoute module="loans"><Loans /></ProtectedRoute>} />
+            <Route path="/inventory" element={<ProtectedRoute module="inventory"><Inventory /></ProtectedRoute>} />
+            <Route path="/invoicing" element={<ProtectedRoute module="invoicing"><Invoicing /></ProtectedRoute>} />
+            <Route path="/compliance" element={<ProtectedRoute module="compliance"><Compliance /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute module="settings"><Settings /></ProtectedRoute>} />
+            <Route path="/procurement" element={<ProtectedRoute module="procurement"><Procurement /></ProtectedRoute>} />
+            <Route path="/assets" element={<ProtectedRoute module="assets"><Assets /></ProtectedRoute>} />
+            <Route path="/hr" element={<ProtectedRoute module="hr"><HR /></ProtectedRoute>} />
+            <Route path="/accounting" element={<ProtectedRoute module="accounting"><Accounting /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute module="reports"><Reports /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute module="notifications"><Notifications /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
